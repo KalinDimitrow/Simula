@@ -1,0 +1,15 @@
+[package]
+name = "Simula"
+version = "0.1.0"
+authors = ["Kalin <kalindimitrovv@gmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced_widget = { version = "0.13", features = ["wgpu"] }
+iced_winit = "0.13"
+iced_wgpu = { version = "0.13", features = [] }
+wgpu-types = "24.0.0"
+wgpu = "24.0.0"
+bytemuck = { version = "1.21.0", features = ["derive"] }
+tracing-subscriber = "0.3"
