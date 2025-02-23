@@ -1,4 +1,4 @@
-use crate::controls::Controls;
+use crate::gui::controls::Controls;
 use crate::scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
@@ -13,11 +13,7 @@ use iced_winit::runtime::Debug;
 use iced_winit::winit;
 use iced_winit::Clipboard;
 
-use winit::{
-    event::WindowEvent,
-    event_loop::{ControlFlow, EventLoop},
-    keyboard::ModifiersState,
-};
+use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
 
 use std::sync::Arc;
 
@@ -210,47 +206,10 @@ impl winit::application::ApplicationHandler for Runner {
 
                 match surface.get_current_texture() {
                     Ok(frame) => {
-                        let mut encoder =
-                            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                                label: None,
-                            });
-
-                        let program = state.program();
-
-                        let view = frame
-                            .texture
-                            .create_view(&wgpu::TextureViewDescriptor::default());
-
-                        {
-                            // We clear the frame
-                            let mut render_pass =
-                                Scene::clear(&view, &mut encoder, program.background_color());
-
-                            // Draw the scene
-                            scene.draw(&mut render_pass);
-                        }
-
-                        // And then iced on top
-                        renderer.present(
-                            engine,
-                            device,
-                            queue,
-                            &mut encoder,
-                            None,
-                            frame.texture.format(),
-                            &view,
-                            viewport,
-                            &debug.overlay(),
+                        Runner::render(
+                            frame, device, state, viewport, scene, renderer, engine, queue, window,
+                            debug,
                         );
-
-                        // Then we submit the work
-                        engine.submit(queue, encoder);
-                        frame.present();
-
-                        // Update the mouse cursor
-                        window.set_cursor(iced_winit::conversion::mouse_interaction(
-                            state.mouse_interaction(),
-                        ));
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {
@@ -309,5 +268,97 @@ impl winit::application::ApplicationHandler for Runner {
             // and request a redraw
             window.request_redraw();
         }
+    }
+}
+
+impl Runner {
+    fn render(
+        frame: wgpu::SurfaceTexture,
+        device: &wgpu::Device,
+        state: &program::State<Controls>,
+        viewport: &Viewport,
+        scene: &Scene,
+        renderer: &mut Renderer,
+        engine: &mut Engine,
+        queue: &wgpu::Queue,
+        window: &winit::window::Window,
+        debug: &Debug,
+    ) {
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        let program = state.program();
+
+        let texture_extent = wgpu::Extent3d {
+            width: viewport.physical_width(),
+            height: viewport.physical_height(),
+            depth_or_array_layers: 1,
+        };
+
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Render Texture"),
+            size: texture_extent,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            view_formats: &[frame.texture.format()],
+            format: frame.texture.format(),
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        });
+
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        {
+            // We clear the texture
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &texture_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations::default(),
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+
+            // Draw the scene to the texture
+            scene.draw(&mut render_pass);
+        }
+
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        {
+            // We clear the frame
+            // let mut render_pass =
+            //     Scene::clear(&view, &mut encoder, program.background_color());
+
+            // Draw the scene
+            // scene.draw(&mut render_pass);
+        }
+
+        // And then iced on top
+        renderer.present(
+            engine,
+            device,
+            queue,
+            &mut encoder,
+            None,
+            frame.texture.format(),
+            &view,
+            viewport,
+            &debug.overlay(),
+        );
+
+        // Then we submit the work
+        engine.submit(queue, encoder);
+        frame.present();
+
+        // Update the mouse cursor
+        window.set_cursor(iced_winit::conversion::mouse_interaction(
+            state.mouse_interaction(),
+        ));
     }
 }

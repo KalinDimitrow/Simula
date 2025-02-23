@@ -1,11 +1,13 @@
+use crate::widgets::texture::Texture;
 use iced_wgpu::Renderer;
-use iced_widget::{column, container, row, slider, text, text_input};
+use iced_widget::{column, container, row, shader, slider, text, text_input};
 use iced_winit::core::{Color, Element, Length::*, Theme};
 use iced_winit::runtime::{Program, Task};
 
 pub struct Controls {
     background_color: Color,
     input: String,
+    texture: Texture,
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +21,7 @@ impl Controls {
         Controls {
             background_color: Color::BLACK,
             input: String::default(),
+            texture: Texture::new(),
         }
     }
 
@@ -73,19 +76,20 @@ impl Program for Controls {
         ]
         .width(500)
         .spacing(20);
-
+        let shader = shader(&self.texture).width(Fill).height(Fill);
         container(
             column![
                 text("Background color").color(Color::WHITE),
                 text!("{background_color:?}").size(14).color(Color::WHITE),
-                text_input("Placeholder", &self.input)
-                    .on_input(Message::InputChanged),
+                text_input("Placeholder", &self.input).on_input(Message::InputChanged),
+                shader,
                 sliders,
             ]
             .spacing(10),
         )
         .padding(10)
-        .align_bottom(Fill)
+        .width(Fill)
+        .height(Fill)
         .into()
     }
 }

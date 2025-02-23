@@ -1,6 +1,7 @@
-mod controls;
+mod gui;
 mod runner;
 mod scene;
+mod widgets;
 
 use crate::runner::Runner;
 use iced_winit::winit;

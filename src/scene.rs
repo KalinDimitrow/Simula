@@ -13,7 +13,7 @@ struct Vertex {
     // tex_coords: [f32; 2],
 }
 
-pub fn generate_vertex_buffer(rows: usize, cols: usize) -> Vec<Vertex> {
+fn generate_vertex_buffer(rows: usize, cols: usize) -> Vec<Vertex> {
     let mut vertices = Vec::with_capacity(rows * cols * 6);
 
     let row_step = 2.0 / rows as f32;
@@ -167,7 +167,7 @@ fn build_pipeline(
     let shader = device.create_shader_module(wgpu::include_wgsl!("shader/shader.wgsl"));
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
+        label: Some("Render scene"),
         push_constant_ranges: &[],
         bind_group_layouts: &[],
     });
