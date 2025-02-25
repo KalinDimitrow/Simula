@@ -5,14 +5,17 @@ use iced::time::Duration;
 use iced::widget::shader::{self, Viewport};
 use iced::{Color, Rectangle, Size};
 use iced_wgpu::wgpu::IndexFormat;
+use std::sync::{Arc, Mutex};
 use wgpu::util::DeviceExt;
 
 #[derive(Clone)]
-pub struct Texture {}
+pub struct Texture {
+    tex: Arc<Mutex<Option<wgpu::Texture>>>,
+}
 
 impl Texture {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
+        Self { tex }
     }
 
     pub fn update(&mut self, time: Duration) {}
@@ -28,23 +31,25 @@ impl<Message> shader::Program<Message> for Texture {
         _cursor: mouse::Cursor,
         bounds: Rectangle,
     ) -> Self::Primitive {
-        Primitive::new() // self.show_depth_buffer, self.light_color)
+        Primitive::new(self.tex.clone()) // self.show_depth_buffer, self.light_color)
     }
 }
 
 /// A collection of `Cube`s that can be rendered.
 #[derive(Debug)]
 pub struct Primitive {
+    tex: Arc<Mutex<Option<wgpu::Texture>>>,
     // uniforms: pipeline::Uniforms,
     // show_depth_buffer: bool,
 }
 
 impl Primitive {
     // pub fn new(bounds: Rectangle, show_depth_buffer: bool, light_color: Color) -> Self {
-    pub fn new() -> Self {
+    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
         // let uniforms = pipeline::Uniforms::new(camera, bounds, light_color);
 
         Self {
+            tex,
             // uniforms,
             // show_depth_buffer,
         }
@@ -67,6 +72,7 @@ impl shader::Primitive for Primitive {
                 queue,
                 format,
                 viewport.physical_size(),
+                self.tex.clone(),
             ));
         }
 
@@ -125,8 +131,9 @@ pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
     indicies: wgpu::Buffer,
+    // tex: Arc<Mutex<Option<wgpu::Texture>>>,
     // uniforms: wgpu::Buffer,
-    // uniform_bind_group: wgpu::BindGroup,
+    bind_group: wgpu::BindGroup,
 }
 
 impl Pipeline {
@@ -135,6 +142,7 @@ impl Pipeline {
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
         target_size: Size<u32>,
+        tex: Arc<Mutex<Option<wgpu::Texture>>>,
     ) -> Self {
         let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("texture vertex buffer"),
@@ -156,38 +164,27 @@ impl Pipeline {
         //     mapped_at_creation: false,
         // });
 
-        let uniform_bind_group_layout =
+        let mut tex_guard = tex.lock().unwrap();
+        let texture = tex_guard.as_ref().unwrap();
+
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("cubes uniform bind group layout"),
+                label: Some("texture bind group layout"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::Cube,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 3,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Texture {
                             sample_type: wgpu::TextureSampleType::Float { filterable: true },
@@ -196,23 +193,33 @@ impl Pipeline {
                         },
                         count: None,
                     },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
                 ],
             });
 
-        // let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        //     label: Some("cubes uniform bind group"),
-        //     layout: &uniform_bind_group_layout,
-        //     entries: &[
-        //         wgpu::BindGroupEntry {
-        //             binding: 0,
-        //             resource: uniforms.as_entire_binding(),
-        //         },
-        //     ],
-        // });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("texture_bind_group"),
+        });
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("cubes pipeline layout"),
-            bind_group_layouts: &[&uniform_bind_group_layout],
+            bind_group_layouts: &[&texture_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -225,7 +232,7 @@ impl Pipeline {
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("texture pipeline"),
-            layout: None, //Some(&layout),
+            layout: Some(&layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
@@ -264,7 +271,7 @@ impl Pipeline {
         Self {
             pipeline,
             // uniforms,
-            // uniform_bind_group,
+            bind_group,
             vertices,
             indicies,
         }
@@ -294,7 +301,7 @@ impl Pipeline {
 
             pass.set_scissor_rect(viewport.x, viewport.y, viewport.width, viewport.height);
             pass.set_pipeline(&self.pipeline);
-            // pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            pass.set_bind_group(0, &self.bind_group, &[]);
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.set_index_buffer(self.indicies.slice(..), IndexFormat::Uint16);
             pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);

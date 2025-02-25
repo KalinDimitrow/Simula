@@ -12,10 +12,9 @@ use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::winit;
 use iced_winit::Clipboard;
+use std::sync::{Arc, Mutex};
 
 use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
-
-use std::sync::Arc;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Runner {
@@ -36,6 +35,7 @@ pub enum Runner {
         modifiers: ModifiersState,
         resized: bool,
         debug: Debug,
+        tex: Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>,
     },
 }
 
@@ -117,7 +117,8 @@ impl winit::application::ApplicationHandler for Runner {
 
             // Initialize scene and GUI controls
             let scene = Scene::new(&device, format);
-            let controls = Controls::new();
+            let tex = Arc::new(Mutex::new(None));
+            let controls = Controls::new(tex.clone());
 
             // Initialize iced
             let mut debug = Debug::new();
@@ -146,6 +147,7 @@ impl winit::application::ApplicationHandler for Runner {
                 viewport,
                 resized: false,
                 debug,
+                tex,
             };
         }
     }
@@ -172,6 +174,7 @@ impl winit::application::ApplicationHandler for Runner {
             clipboard,
             resized,
             debug,
+            tex,
         } = self
         else {
             return;
@@ -208,7 +211,7 @@ impl winit::application::ApplicationHandler for Runner {
                     Ok(frame) => {
                         Runner::render(
                             frame, device, state, viewport, scene, renderer, engine, queue, window,
-                            debug,
+                            debug, tex,
                         );
                     }
                     Err(error) => match error {
@@ -283,6 +286,7 @@ impl Runner {
         queue: &wgpu::Queue,
         window: &winit::window::Window,
         debug: &Debug,
+        tex: &mut Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>,
     ) {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -324,6 +328,8 @@ impl Runner {
 
             // Draw the scene to the texture
             scene.draw(&mut render_pass);
+            let mut tex_guard = tex.lock().unwrap();
+            *tex_guard = Some(texture);
         }
 
         let view = frame
@@ -332,8 +338,7 @@ impl Runner {
 
         {
             // We clear the frame
-            // let mut render_pass =
-            //     Scene::clear(&view, &mut encoder, program.background_color());
+            // let mut render_pass = Scene::clear(&view, &mut encoder, Color::BLACK);
 
             // Draw the scene
             // scene.draw(&mut render_pass);

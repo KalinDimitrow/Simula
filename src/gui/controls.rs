@@ -3,6 +3,7 @@ use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, shader, slider, text, text_input};
 use iced_winit::core::{Color, Element, Length::*, Theme};
 use iced_winit::runtime::{Program, Task};
+use std::sync::{Arc, Mutex};
 
 pub struct Controls {
     background_color: Color,
@@ -17,16 +18,12 @@ pub enum Message {
 }
 
 impl Controls {
-    pub fn new() -> Controls {
+    pub fn new(tex: Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>) -> Controls {
         Controls {
             background_color: Color::BLACK,
             input: String::default(),
-            texture: Texture::new(),
+            texture: Texture::new(tex),
         }
-    }
-
-    pub fn background_color(&self) -> Color {
-        self.background_color
     }
 }
 
