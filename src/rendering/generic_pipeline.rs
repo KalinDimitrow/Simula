@@ -1,123 +1,10 @@
-use iced_wgpu::wgpu;
-
-use iced::mouse;
-use iced::widget::shader::{self, Viewport};
-use iced::{Rectangle, Size};
-use iced_wgpu::wgpu::IndexFormat;
+use crate::rendering::*;
 use std::sync::{Arc, Mutex};
-use wgpu::util::DeviceExt;
-
-#[derive(Clone)]
-pub struct Texture {
-    tex: Arc<Mutex<Option<wgpu::Texture>>>,
-}
-
-impl Texture {
-    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
-        Self { tex }
-    }
-}
-
-impl<Message> shader::Program<Message> for Texture {
-    type State = ();
-    type Primitive = Primitive;
-
-    fn draw(
-        &self,
-        _state: &Self::State,
-        _cursor: mouse::Cursor,
-        _bounds: Rectangle,
-    ) -> Self::Primitive {
-        Primitive::new(self.tex.clone()) // self.show_depth_buffer, self.light_color)
-    }
-}
-
-#[derive(Debug)]
-pub struct Primitive {
-    tex: Arc<Mutex<Option<wgpu::Texture>>>,
-}
-
-impl Primitive {
-    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
-        Self { tex }
-    }
-}
-
-impl shader::Primitive for Primitive {
-    fn prepare(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-        storage: &mut shader::Storage,
-        _bounds: &Rectangle,
-        viewport: &Viewport,
-    ) {
-        if !storage.has::<Pipeline>() {
-            storage.store(Pipeline::new(
-                device,
-                queue,
-                format,
-                viewport.physical_size(),
-                self.tex.clone(),
-            ));
-        }
-
-        let pipeline = storage.get_mut::<Pipeline>().unwrap();
-
-        // Upload data to GPU
-        // pipeline.update(
-        //     device,
-        //     queue,
-        //     viewport.physical_size(),
-        //     &self.uniforms,
-        //     self.cubes.len(),
-        //     &self.cubes,
-        // );
-    }
-
-    fn render(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        storage: &shader::Storage,
-        target: &wgpu::TextureView,
-        clip_bounds: &Rectangle<u32>,
-    ) {
-        // At this point our pipeline should always be initialized
-        let pipeline = storage.get::<Pipeline>().unwrap();
-
-        // Render primitive
-        pipeline.render(target, encoder, *clip_bounds);
-    }
-}
-
-const VERTICES: &[Vertex] = &[
-    Vertex {
-        position: [-1.0, 1.0, 0.0],
-        tex_coords: [0.0, 0.0],
-    }, // A
-    Vertex {
-        position: [-1.0, -1.0, 0.0],
-        tex_coords: [0.0, 1.0],
-    }, // B
-    Vertex {
-        position: [1.0, -1.0, 0.0],
-        tex_coords: [1.0, 1.0],
-    }, // C
-    Vertex {
-        position: [1.0, 1.0, 0.0],
-        tex_coords: [1.0, 0.0],
-    }, // D
-];
-
-const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
     indicies: wgpu::Buffer,
-    // tex: Arc<Mutex<Option<wgpu::Texture>>>,
-    // uniforms: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
@@ -203,7 +90,7 @@ impl Pipeline {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("texture shader"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
-                "../shader/texture_shader.wgsl"
+                "../rendering/shader/textured_polygon.wgsl"
             ))),
         });
 
@@ -281,34 +168,6 @@ impl Pipeline {
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.set_index_buffer(self.indicies.slice(..), IndexFormat::Uint16);
             pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C)]
-pub struct Vertex {
-    position: [f32; 3],
-    tex_coords: [f32; 2],
-}
-
-impl Vertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 4] = wgpu::vertex_attr_array![
-        //position
-        0 => Float32x3,
-        //normal
-        1 => Float32x3,
-        //tangent
-        2 => Float32x3,
-        //uv
-        3 => Float32x2,
-    ];
-
-    pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &Self::ATTRIBS,
         }
     }
 }

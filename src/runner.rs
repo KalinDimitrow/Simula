@@ -1,5 +1,5 @@
 use crate::gui::controls::Controls;
-use crate::scene::Scene;
+use crate::rendering::scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
@@ -290,8 +290,6 @@ impl Runner {
     ) {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let program = state.program();
 
         let texture_extent = wgpu::Extent3d {
             width: viewport.physical_width(),

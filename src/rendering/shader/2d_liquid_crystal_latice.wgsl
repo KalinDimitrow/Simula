@@ -8,7 +8,8 @@
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
-    @location(1) offset: vec2<f32>,
+    @location(1) tex_coords: vec2<f32>,
+    @location(2) offset: vec2<f32>,
 }
 // struct InstanceInput {
 //     @location(5) model_matrix_0: vec4<f32>,

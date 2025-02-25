@@ -1,1 +1,1 @@
-pub mod texture;
+pub mod textured_widget;

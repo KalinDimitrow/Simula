@@ -1,4 +1,4 @@
-use crate::widgets::texture::Texture;
+use crate::widgets::textured_widget::TexturedWidget;
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, shader, slider, text, text_input};
 use iced_winit::core::{Color, Element, Length::*, Theme};
@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 pub struct Controls {
     background_color: Color,
     input: String,
-    texture: Texture,
+    texture: TexturedWidget,
 }
 
 #[derive(Debug, Clone)]
@@ -22,7 +22,7 @@ impl Controls {
         Controls {
             background_color: Color::BLACK,
             input: String::default(),
-            texture: Texture::new(tex),
+            texture: TexturedWidget::new(tex),
         }
     }
 }

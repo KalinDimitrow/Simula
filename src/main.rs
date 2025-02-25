@@ -1,6 +1,6 @@
 mod gui;
+mod rendering;
 mod runner;
-mod scene;
 mod widgets;
 
 use crate::runner::Runner;
