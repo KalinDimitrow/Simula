@@ -1,9 +1,8 @@
 use iced_wgpu::wgpu;
 
 use iced::mouse;
-use iced::time::Duration;
 use iced::widget::shader::{self, Viewport};
-use iced::{Color, Rectangle, Size};
+use iced::{Rectangle, Size};
 use iced_wgpu::wgpu::IndexFormat;
 use std::sync::{Arc, Mutex};
 use wgpu::util::DeviceExt;
@@ -17,8 +16,6 @@ impl Texture {
     pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
         Self { tex }
     }
-
-    pub fn update(&mut self, time: Duration) {}
 }
 
 impl<Message> shader::Program<Message> for Texture {
@@ -29,30 +26,20 @@ impl<Message> shader::Program<Message> for Texture {
         &self,
         _state: &Self::State,
         _cursor: mouse::Cursor,
-        bounds: Rectangle,
+        _bounds: Rectangle,
     ) -> Self::Primitive {
         Primitive::new(self.tex.clone()) // self.show_depth_buffer, self.light_color)
     }
 }
 
-/// A collection of `Cube`s that can be rendered.
 #[derive(Debug)]
 pub struct Primitive {
     tex: Arc<Mutex<Option<wgpu::Texture>>>,
-    // uniforms: pipeline::Uniforms,
-    // show_depth_buffer: bool,
 }
 
 impl Primitive {
-    // pub fn new(bounds: Rectangle, show_depth_buffer: bool, light_color: Color) -> Self {
     pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
-        // let uniforms = pipeline::Uniforms::new(camera, bounds, light_color);
-
-        Self {
-            tex,
-            // uniforms,
-            // show_depth_buffer,
-        }
+        Self { tex }
     }
 }
 
@@ -137,9 +124,9 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        target_size: Size<u32>,
+        _target_size: Size<u32>,
         tex: Arc<Mutex<Option<wgpu::Texture>>>,
     ) -> Self {
         let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -153,14 +140,6 @@ impl Pipeline {
             contents: bytemuck::cast_slice(INDICES),
             usage: wgpu::BufferUsages::INDEX,
         });
-
-        // //uniforms for all cubes
-        // let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
-        //     label: Some("cubes uniform buffer"),
-        //     size: std::mem::size_of::<Uniforms>() as u64,
-        //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        //     mapped_at_creation: false,
-        // });
 
         let tex_guard = tex.lock().unwrap();
         let texture = tex_guard.as_ref().unwrap();
@@ -268,7 +247,6 @@ impl Pipeline {
 
         Self {
             pipeline,
-            // uniforms,
             bind_group,
             vertices,
             indicies,
