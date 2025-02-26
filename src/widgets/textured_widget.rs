@@ -1,15 +1,14 @@
 use crate::rendering::generic_pipeline::Pipeline;
 use crate::rendering::*;
-use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct TexturedWidget {
-    tex: Arc<Mutex<Option<Texture>>>,
+    texture: TextureHandle,
 }
 
 impl TexturedWidget {
-    pub fn new(tex: Arc<Mutex<Option<Texture>>>) -> Self {
-        Self { tex }
+    pub fn new(texture: TextureHandle) -> Self {
+        Self { texture }
     }
 }
 
@@ -23,18 +22,18 @@ impl<Message> shader::Program<Message> for TexturedWidget {
         _cursor: mouse::Cursor,
         _bounds: Rectangle,
     ) -> Self::Primitive {
-        Primitive::new(self.tex.clone())
+        Primitive::new(self.texture.clone())
     }
 }
 
 #[derive(Debug)]
 pub struct Primitive {
-    tex: Arc<Mutex<Option<Texture>>>,
+    texture: TextureHandle,
 }
 
 impl Primitive {
-    pub fn new(tex: Arc<Mutex<Option<Texture>>>) -> Self {
-        Self { tex }
+    pub fn new(texture: TextureHandle) -> Self {
+        Self { texture }
     }
 }
 
@@ -54,7 +53,7 @@ impl shader::Primitive for Primitive {
                 queue,
                 format,
                 viewport.physical_size(),
-                self.tex.clone(),
+                self.texture.clone(),
             ));
         }
     }

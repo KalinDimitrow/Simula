@@ -1,5 +1,4 @@
 use super::*;
-use std::sync::{Arc, Mutex};
 
 pub struct Pipeline {
     pipeline: RenderPipeline,
@@ -14,7 +13,7 @@ impl Pipeline {
         _queue: &Queue,
         format: TextureFormat,
         _target_size: Size<u32>,
-        tex: Arc<Mutex<Option<Texture>>>,
+        texture: TextureHandle,
     ) -> Self {
         let vertices = device.create_buffer_init(&util::BufferInitDescriptor {
             label: Some("texture vertex buffer"),
@@ -28,8 +27,8 @@ impl Pipeline {
             usage: BufferUsages::INDEX,
         });
 
-        let tex_guard = tex.lock().unwrap();
-        let texture = tex_guard.as_ref().unwrap();
+        let texture = texture.lock().unwrap();
+        // let texture = tex_guard.as_ref();
 
         let texture_view = texture.create_view(&TextureViewDescriptor::default());
 

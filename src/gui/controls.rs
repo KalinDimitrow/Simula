@@ -1,9 +1,9 @@
+use crate::rendering::*;
 use crate::widgets::textured_widget::TexturedWidget;
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, shader, slider, text, text_input};
 use iced_winit::core::{Color, Element, Length::*, Theme};
 use iced_winit::runtime::{Program, Task};
-use std::sync::{Arc, Mutex};
 
 pub struct Controls {
     background_color: Color,
@@ -18,11 +18,11 @@ pub enum Message {
 }
 
 impl Controls {
-    pub fn new(tex: Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>) -> Controls {
+    pub fn new(texture: TextureHandle) -> Controls {
         Controls {
             background_color: Color::BLACK,
             input: String::default(),
-            texture: TexturedWidget::new(tex),
+            texture: TexturedWidget::new(texture),
         }
     }
 }

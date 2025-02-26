@@ -1,5 +1,5 @@
 use crate::gui::controls::Controls;
-use crate::rendering::liquid_crystal_latice::scene::Scene;
+use crate::rendering::renderers::*;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
@@ -12,7 +12,7 @@ use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::winit;
 use iced_winit::Clipboard;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
 
@@ -27,7 +27,7 @@ pub enum Runner {
         format: wgpu::TextureFormat,
         engine: Engine,
         renderer: Renderer,
-        scene: Scene,
+        background_renderer: BackgroundRenderer,
         state: program::State<Controls>,
         cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
         clipboard: Clipboard,
@@ -35,7 +35,6 @@ pub enum Runner {
         modifiers: ModifiersState,
         resized: bool,
         debug: Debug,
-        tex: Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>,
     },
 }
 
@@ -116,9 +115,8 @@ impl winit::application::ApplicationHandler for Runner {
             );
 
             // Initialize scene and GUI controls
-            let scene = Scene::new(&device, &queue, format);
-            let tex = Arc::new(Mutex::new(None));
-            let controls = Controls::new(tex.clone());
+            let background_renderer = BackgroundRenderer::new(&device, &queue, &viewport, format);
+            let controls = Controls::new(background_renderer.get_texture_handle());
 
             // Initialize iced
             let mut debug = Debug::new();
@@ -139,7 +137,7 @@ impl winit::application::ApplicationHandler for Runner {
                 format,
                 engine,
                 renderer,
-                scene,
+                background_renderer,
                 state,
                 cursor_position: None,
                 modifiers: ModifiersState::default(),
@@ -147,7 +145,6 @@ impl winit::application::ApplicationHandler for Runner {
                 viewport,
                 resized: false,
                 debug,
-                tex,
             };
         }
     }
@@ -166,7 +163,7 @@ impl winit::application::ApplicationHandler for Runner {
             format,
             engine,
             renderer,
-            scene,
+            background_renderer,
             state,
             viewport,
             cursor_position,
@@ -174,7 +171,6 @@ impl winit::application::ApplicationHandler for Runner {
             clipboard,
             resized,
             debug,
-            tex,
         } = self
         else {
             return;
@@ -210,8 +206,16 @@ impl winit::application::ApplicationHandler for Runner {
                 match surface.get_current_texture() {
                     Ok(frame) => {
                         Runner::render(
-                            frame, device, state, viewport, scene, renderer, engine, queue, window,
-                            debug, tex,
+                            frame,
+                            device,
+                            state,
+                            viewport,
+                            background_renderer,
+                            renderer,
+                            engine,
+                            queue,
+                            window,
+                            debug,
                         );
                     }
                     Err(error) => match error {
@@ -280,67 +284,20 @@ impl Runner {
         device: &wgpu::Device,
         state: &program::State<Controls>,
         viewport: &Viewport,
-        scene: &Scene,
+        background_renderer: &BackgroundRenderer,
         renderer: &mut Renderer,
         engine: &mut Engine,
         queue: &wgpu::Queue,
         window: &winit::window::Window,
         debug: &Debug,
-        tex: &mut Arc<Mutex<Option<iced_wgpu::wgpu::Texture>>>,
     ) {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let texture_extent = wgpu::Extent3d {
-            width: viewport.physical_width(),
-            height: viewport.physical_height(),
-            depth_or_array_layers: 1,
-        };
-
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Render Texture"),
-            size: texture_extent,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            view_formats: &[frame.texture.format()],
-            format: frame.texture.format(),
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-        });
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        {
-            // We clear the texture
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &texture_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations::default(),
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
-
-            // Draw the scene to the texture
-            scene.draw(&mut render_pass);
-            let mut tex_guard = tex.lock().unwrap();
-            *tex_guard = Some(texture);
-        }
+        background_renderer.render(&mut encoder);
 
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-
-        {
-            // We clear the frame
-            // let mut render_pass = Scene::clear(&view, &mut encoder, Color::BLACK);
-
-            // Draw the scene
-            // scene.draw(&mut render_pass);
-        }
 
         // And then iced on top
         renderer.present(
