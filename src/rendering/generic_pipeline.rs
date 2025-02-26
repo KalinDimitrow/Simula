@@ -1,4 +1,4 @@
-use crate::rendering::*;
+use super::*;
 use std::sync::{Arc, Mutex};
 
 pub struct Pipeline {

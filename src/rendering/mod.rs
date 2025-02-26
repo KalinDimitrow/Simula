@@ -9,5 +9,5 @@ pub use iced_wgpu::wgpu::*;
 
 pub mod assets;
 pub mod generic_pipeline;
-pub mod scene;
+pub mod liquid_crystal_latice;
 pub mod vertex;

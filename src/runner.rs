@@ -1,5 +1,5 @@
 use crate::gui::controls::Controls;
-use crate::rendering::scene::Scene;
+use crate::rendering::liquid_crystal_latice::scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
