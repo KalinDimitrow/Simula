@@ -4,11 +4,11 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct TexturedWidget {
-    tex: Arc<Mutex<Option<wgpu::Texture>>>,
+    tex: Arc<Mutex<Option<Texture>>>,
 }
 
 impl TexturedWidget {
-    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
+    pub fn new(tex: Arc<Mutex<Option<Texture>>>) -> Self {
         Self { tex }
     }
 }
@@ -29,11 +29,11 @@ impl<Message> shader::Program<Message> for TexturedWidget {
 
 #[derive(Debug)]
 pub struct Primitive {
-    tex: Arc<Mutex<Option<wgpu::Texture>>>,
+    tex: Arc<Mutex<Option<Texture>>>,
 }
 
 impl Primitive {
-    pub fn new(tex: Arc<Mutex<Option<wgpu::Texture>>>) -> Self {
+    pub fn new(tex: Arc<Mutex<Option<Texture>>>) -> Self {
         Self { tex }
     }
 }
@@ -41,9 +41,9 @@ impl Primitive {
 impl shader::Primitive for Primitive {
     fn prepare(
         &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
+        device: &iced_wgpu::wgpu::Device,
+        queue: &iced_wgpu::wgpu::Queue,
+        format: iced_wgpu::wgpu::TextureFormat,
         storage: &mut shader::Storage,
         _bounds: &Rectangle,
         viewport: &Viewport,
@@ -61,9 +61,9 @@ impl shader::Primitive for Primitive {
 
     fn render(
         &self,
-        encoder: &mut wgpu::CommandEncoder,
+        encoder: &mut CommandEncoder,
         storage: &shader::Storage,
-        target: &wgpu::TextureView,
+        target: &TextureView,
         clip_bounds: &Rectangle<u32>,
     ) {
         // At this point our pipeline should always be initialized

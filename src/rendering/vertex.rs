@@ -29,17 +29,17 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 2] = iced_wgpu::wgpu::vertex_attr_array![
+    const ATTRIBS: [VertexAttribute; 2] = iced_wgpu::wgpu::vertex_attr_array![
         //position
         0 => Float32x3,
         //uv
         1 => Float32x2,
     ];
 
-    pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
+    pub fn desc<'a>() -> VertexBufferLayout<'a> {
+        VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
             attributes: &Self::ATTRIBS,
         }
     }
@@ -53,7 +53,7 @@ pub struct OrbitingVertex {
 }
 
 impl OrbitingVertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 3] = iced_wgpu::wgpu::vertex_attr_array![
+    const ATTRIBS: [VertexAttribute; 3] = iced_wgpu::wgpu::vertex_attr_array![
         //position
         0 => Float32x3,
         //uv
@@ -62,10 +62,10 @@ impl OrbitingVertex {
         2 => Float32x2,
     ];
 
-    pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
+    pub fn desc<'a>() -> VertexBufferLayout<'a> {
+        VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
             attributes: &Self::ATTRIBS,
         }
     }

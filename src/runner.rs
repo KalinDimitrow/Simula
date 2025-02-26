@@ -116,7 +116,7 @@ impl winit::application::ApplicationHandler for Runner {
             );
 
             // Initialize scene and GUI controls
-            let scene = Scene::new(&device, format);
+            let scene = Scene::new(&device, &queue, format);
             let tex = Arc::new(Mutex::new(None));
             let controls = Controls::new(tex.clone());
 

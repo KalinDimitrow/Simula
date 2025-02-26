@@ -20,7 +20,7 @@ struct VertexInput {
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    // @location(0) tex_coords: vec2<f32>,
+    @location(0) tex_coords: vec2<f32>,
 }
 
 @vertex
@@ -29,7 +29,7 @@ fn vs_main(
     // instance: InstanceInput,
 ) -> VertexOutput {
     let identity_matrix = mat4x4<f32>(vec4<f32>(1,0,0,0), vec4<f32>(0,1,0,0), vec4<f32>(0,0,1,0), vec4<f32>(0,0,0,1));
-    let instanceAngle: f32 = 45.0;
+    let instanceAngle: f32 = 0.0;
     let pos = vec2<f32>(input.position.xy);
     let offset = vec2<f32>(input.offset.xy);
     let translated_pos = pos - offset;
@@ -43,7 +43,7 @@ fn vs_main(
     // Rotate and offset the rectangle
     let rotated_pos = rotation_matrix * translated_pos + offset;
     var out: VertexOutput;
-    // out.tex_coords = model.tex_coords;
+    out.tex_coords = input.tex_coords;
     out.clip_position = vec4<f32>(rotated_pos, 0.0, 1.0);
     return out;
 }
@@ -57,6 +57,5 @@ var s_diffuse: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(1,1,0,0);
-    // return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }
