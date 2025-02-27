@@ -8,7 +8,7 @@ pub enum ThreadControlMessage {
 }
 
 pub struct AlgorithmProcessor {
-    sender: Sender<Data>,
+    // sender: Sender<Data>,
     worker_controller: Sender<ThreadControlMessage>,
     worker: Option<thread::JoinHandle<()>>,
 }
@@ -22,6 +22,7 @@ impl AlgorithmProcessor {
         ) = unbounded();
 
         let handle = thread::spawn(move || {
+            let mut count: u64 = 0;
             loop {
                 // Check for the stop signal
                 if let Ok(_) = controller_listener.try_recv() {
@@ -29,13 +30,17 @@ impl AlgorithmProcessor {
                     break;
                 }
 
-                thread::sleep(Duration::from_secs(1));
+                sender
+                    .send(count as f32 * std::f32::consts::PI / 180.0)
+                    .expect("Receiver is already closed");
+                count += 1;
+                thread::sleep(Duration::from_millis(40));
             }
         });
         (
             receiver,
             Self {
-                sender,
+                // sender,
                 worker_controller,
                 worker: Some(handle),
             },

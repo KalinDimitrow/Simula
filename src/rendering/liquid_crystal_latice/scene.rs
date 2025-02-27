@@ -9,11 +9,12 @@ pub struct Scene {
     bind_group: BindGroup,
     vertex_buffer: Buffer,
     index_buffer: Buffer,
+    angle_buffer: Buffer,
 }
 
 impl Scene {
     pub fn new(device: &Device, queue: &Queue, texture_format: TextureFormat) -> Scene {
-        let (pipeline, bind_group) = build_pipeline(device, queue, texture_format);
+        let (pipeline, bind_group, angle_buffer) = build_pipeline(device, queue, texture_format);
         let vertex_buffer = device.create_buffer_init(&util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(
@@ -33,6 +34,7 @@ impl Scene {
             bind_group,
             vertex_buffer,
             index_buffer,
+            angle_buffer,
         }
     }
 
@@ -48,13 +50,17 @@ impl Scene {
         };
         render_pass.draw(range, 0..1);
     }
+
+    pub fn update(&self, queue: &Queue, angle: f32) {
+        queue.write_buffer(&self.angle_buffer, 0, bytemuck::cast_slice(&[angle]));
+    }
 }
 
 fn build_pipeline(
     device: &Device,
     queue: &Queue,
     texture_format: TextureFormat,
-) -> (RenderPipeline, BindGroup) {
+) -> (RenderPipeline, BindGroup, Buffer) {
     let shader = device.create_shader_module(iced_wgpu::wgpu::include_wgsl!(
         "../shader/2d_liquid_crystal_latice.wgsl"
     ));
@@ -91,7 +97,23 @@ fn build_pipeline(
                 ty: BindingType::Sampler(SamplerBindingType::Filtering),
                 count: None,
             },
+            BindGroupLayoutEntry {
+                binding: 2,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
         ],
+    });
+
+    let angle_buffer = device.create_buffer_init(&util::BufferInitDescriptor {
+        label: Some("Single Value Buffer"),
+        contents: bytemuck::cast_slice(&[0]),
+        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
     });
 
     let bind_group = device.create_bind_group(&BindGroupDescriptor {
@@ -104,6 +126,10 @@ fn build_pipeline(
             BindGroupEntry {
                 binding: 1,
                 resource: BindingResource::Sampler(&sampler),
+            },
+            BindGroupEntry {
+                binding: 2,
+                resource: angle_buffer.as_entire_binding(),
             },
         ],
         label: Some("texture_bind_group"),
@@ -150,5 +176,6 @@ fn build_pipeline(
             multiview: None,
         }),
         bind_group,
+        angle_buffer,
     )
 }

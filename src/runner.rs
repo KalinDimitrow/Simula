@@ -298,7 +298,7 @@ impl Runner {
     ) {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        background_renderer.render(&mut encoder);
+        background_renderer.render(&mut encoder, queue);
 
         let view = frame
             .texture

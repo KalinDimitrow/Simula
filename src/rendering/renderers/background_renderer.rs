@@ -45,20 +45,23 @@ impl BackgroundRenderer {
         }
     }
 
-    pub fn render<'a>(&'a self, encoder: &mut CommandEncoder) {
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: &self.texture_view,
-                resolve_target: None,
-                ops: Operations::default(),
-            })],
-            depth_stencil_attachment: None,
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
+    pub fn render<'a>(&'a self, encoder: &mut CommandEncoder, queue: &Queue) {
+        for datum in self.data_handle.try_iter() {
+            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &self.texture_view,
+                    resolve_target: None,
+                    ops: Operations::default(),
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
 
-        self.scene.draw(&mut render_pass);
+            self.scene.update(queue, datum);
+            self.scene.draw(&mut render_pass);
+        }
     }
 
     pub fn get_texture_handle(&self) -> TextureHandle {
