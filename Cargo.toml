@@ -11,5 +11,6 @@ iced_widget = { version = "0.13.1", features = ["wgpu"] }
 iced_winit = "0.13.0"
 iced_wgpu = { version = "0.13.1", features = [] }
 bytemuck = { version = "1.21.0", features = ["derive"] }
+crossbeam = "0.8.4"
 tracing-subscriber = "0.3"
 image = "0.25.5"

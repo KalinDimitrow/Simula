@@ -1,9 +1,11 @@
+use crate::algorithm_processor::*;
 use crate::rendering::*;
 
 pub struct BackgroundRenderer {
     pub texture: TextureHandle,
     pub texture_view: TextureView,
     scene: Scene,
+    data_handle: ProcessedDataHandle,
 }
 
 impl BackgroundRenderer {
@@ -12,6 +14,7 @@ impl BackgroundRenderer {
         queue: &Queue,
         viewport: &Viewport,
         texture_format: TextureFormat,
+        data_handle: ProcessedDataHandle,
     ) -> Self {
         let scene = Scene::new(device, queue, texture_format);
         let texture_extent = Extent3d {
@@ -38,6 +41,7 @@ impl BackgroundRenderer {
             texture,
             texture_view,
             scene,
+            data_handle,
         }
     }
 

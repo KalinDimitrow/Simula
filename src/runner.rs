@@ -1,3 +1,4 @@
+use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
 use crate::rendering::renderers::*;
 
@@ -27,6 +28,7 @@ pub enum Runner {
         format: wgpu::TextureFormat,
         engine: Engine,
         renderer: Renderer,
+        algorithm_processor: AlgorithmProcessor,
         background_renderer: BackgroundRenderer,
         state: program::State<Controls>,
         cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
@@ -114,8 +116,9 @@ impl winit::application::ApplicationHandler for Runner {
                 },
             );
 
-            // Initialize scene and GUI controls
-            let background_renderer = BackgroundRenderer::new(&device, &queue, &viewport, format);
+            let (data_handle, algorithm_processor) = algorithm_processor::AlgorithmProcessor::new();
+            let background_renderer =
+                BackgroundRenderer::new(&device, &queue, &viewport, format, data_handle);
             let controls = Controls::new(background_renderer.get_texture_handle());
 
             // Initialize iced
@@ -138,6 +141,7 @@ impl winit::application::ApplicationHandler for Runner {
                 engine,
                 renderer,
                 background_renderer,
+                algorithm_processor,
                 state,
                 cursor_position: None,
                 modifiers: ModifiersState::default(),
@@ -163,6 +167,7 @@ impl winit::application::ApplicationHandler for Runner {
             format,
             engine,
             renderer,
+            algorithm_processor,
             background_renderer,
             state,
             viewport,

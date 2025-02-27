@@ -1,3 +1,4 @@
+mod algorithm_processor;
 mod gui;
 mod rendering;
 mod runner;
