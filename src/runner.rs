@@ -118,7 +118,7 @@ impl winit::application::ApplicationHandler for Runner {
 
             let (data_handle, algorithm_processor) = algorithm_processor::AlgorithmProcessor::new();
             let background_renderer =
-                BackgroundRenderer::new(&device, &queue, &viewport, format, data_handle);
+                BackgroundRenderer::new(&device, &queue, &viewport, data_handle);
             let controls = Controls::new(background_renderer.get_texture_handle());
 
             // Initialize iced

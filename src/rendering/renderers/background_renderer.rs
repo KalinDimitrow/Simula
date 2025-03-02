@@ -13,10 +13,9 @@ impl BackgroundRenderer {
         device: &Device,
         queue: &Queue,
         viewport: &Viewport,
-        texture_format: TextureFormat,
         data_handle: ProcessedDataHandle,
     ) -> Self {
-        let scene = Scene::new(device, queue, texture_format);
+        let scene = Scene::new(device, queue, (20, 20));
         let texture_extent = Extent3d {
             width: viewport.physical_width(),
             height: viewport.physical_height(),

@@ -1,6 +1,7 @@
 use crate::rendering::*;
 
 fn generate_rectangle_vertices(
+    index: u32,
     x0: f32,
     y0: f32,
     x1: f32,
@@ -16,6 +17,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [0.0, 0.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Bottom-left
         OrbitingVertex {
             vertex: Vertex {
@@ -23,6 +25,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [1.0, 0.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Bottom-right
         OrbitingVertex {
             vertex: Vertex {
@@ -30,6 +33,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [0.0, 1.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Top-left
         // Second triangle of the rectangle
         OrbitingVertex {
@@ -38,6 +42,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [0.0, 1.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Top-left
         OrbitingVertex {
             vertex: Vertex {
@@ -45,6 +50,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [1.0, 0.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Bottom-right
         OrbitingVertex {
             vertex: Vertex {
@@ -52,6 +58,7 @@ fn generate_rectangle_vertices(
                 tex_coords: [1.0, 1.0],
             },
             center: [center_x, center_y],
+            index,
         }, // Top-right
     ]
 }
@@ -63,6 +70,7 @@ pub fn generate_vertex_buffer(rows: usize, cols: usize) -> Vec<OrbitingVertex> {
     let col_step = 2.0 / cols as f32;
     let spacing_x = col_step / 3.0;
     let spacing_y = row_step / 3.0;
+    let mut index = 0;
 
     for row in 0..rows {
         let y0 = -1.0 + row as f32 * row_step + spacing_y / 2.0;
@@ -75,8 +83,9 @@ pub fn generate_vertex_buffer(rows: usize, cols: usize) -> Vec<OrbitingVertex> {
             let center_x = (x0 + x1) / 2.0;
 
             vertices.extend(generate_rectangle_vertices(
-                x0, y0, x1, y1, center_x, center_y,
+                index, x0, y0, x1, y1, center_x, center_y,
             ));
+            index += 1;
         }
     }
 

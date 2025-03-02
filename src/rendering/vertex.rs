@@ -50,16 +50,19 @@ impl Vertex {
 pub struct OrbitingVertex {
     pub vertex: Vertex,
     pub center: [f32; 2],
+    pub index: u32,
 }
 
 impl OrbitingVertex {
-    const ATTRIBS: [VertexAttribute; 3] = iced_wgpu::wgpu::vertex_attr_array![
+    const ATTRIBS: [VertexAttribute; 4] = iced_wgpu::wgpu::vertex_attr_array![
         //position
         0 => Float32x3,
         //uv
         1 => Float32x2,
         //center
         2 => Float32x2,
+        // index
+        3 => Uint32,
     ];
 
     pub fn desc<'a>() -> VertexBufferLayout<'a> {

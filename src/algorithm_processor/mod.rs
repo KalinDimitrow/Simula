@@ -1,14 +1,14 @@
 use crossbeam::channel::*;
+use rand::Rng;
 use std::thread;
 use std::time::Duration;
-pub type Data = f32;
+pub type Data = Vec<f32>;
 pub type ProcessedDataHandle = Receiver<Data>;
 pub enum ThreadControlMessage {
     Stop,
 }
 
 pub struct AlgorithmProcessor {
-    // sender: Sender<Data>,
     worker_controller: Sender<ThreadControlMessage>,
     worker: Option<thread::JoinHandle<()>>,
 }
@@ -23,15 +23,24 @@ impl AlgorithmProcessor {
 
         let handle = thread::spawn(move || {
             let mut count: u64 = 0;
+            let size = 20 * 20;
+            let mut rng = rand::thread_rng();
+            let storage_data: Vec<f32> = (0..size).map(|_| rng.random_range(-1.0..1.0)).collect();
+
             loop {
-                // Check for the stop signal
                 if let Ok(_) = controller_listener.try_recv() {
                     println!("Received stop signal, exiting thread.");
                     break;
                 }
 
+                // let data: Vec<f32> = vec![count as f32 * std::f32::consts::PI / 180.0; size];
+                let data = storage_data
+                    .iter()
+                    .map(|e| e * (count as f32) * std::f32::consts::PI / 180.0)
+                    .collect();
                 sender
-                    .send(count as f32 * std::f32::consts::PI / 180.0)
+                    // .send(count as f32 * std::f32::consts::PI / 180.0)
+                    .send(data)
                     .expect("Receiver is already closed");
                 count += 1;
                 thread::sleep(Duration::from_millis(40));
@@ -40,7 +49,6 @@ impl AlgorithmProcessor {
         (
             receiver,
             Self {
-                // sender,
                 worker_controller,
                 worker: Some(handle),
             },

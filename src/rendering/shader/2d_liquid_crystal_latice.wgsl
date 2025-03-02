@@ -1,21 +1,23 @@
 
 struct Uniforms {
-    angle: f32,
+    dimentions:  vec2<f32>,
 };
 @group(0) @binding(2)
 var<uniform> uniforms: Uniforms;
+
+struct Storage {
+    angle_data: array<f32>,
+};
+
+@group(0) @binding(3)
+var<storage, read> storageBuffer: Storage;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
     @location(2) offset: vec2<f32>,
+    @location(3) index: u32,
 }
-// struct InstanceInput {
-//     @location(5) model_matrix_0: vec4<f32>,
-//     @location(6) model_matrix_1: vec4<f32>,
-//     @location(7) model_matrix_2: vec4<f32>,
-//     @location(8) model_matrix_3: vec4<f32>,
-// }
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -25,10 +27,9 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     input: VertexInput,
-    // instance: InstanceInput,
 ) -> VertexOutput {
     let identity_matrix = mat4x4<f32>(vec4<f32>(1,0,0,0), vec4<f32>(0,1,0,0), vec4<f32>(0,0,1,0), vec4<f32>(0,0,0,1));
-    let instanceAngle: f32 = uniforms.angle;
+    let instanceAngle: f32 = storageBuffer.angle_data[input.index];
     let pos = vec2<f32>(input.position.xy);
     let offset = vec2<f32>(input.offset.xy);
     let translated_pos = pos - offset;
