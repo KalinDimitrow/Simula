@@ -44,7 +44,8 @@ impl BackgroundRenderer {
         }
     }
 
-    pub fn render<'a>(&'a self, encoder: &mut CommandEncoder, queue: &Queue) {
+    pub fn render<'a>(&'a self, encoder: &mut CommandEncoder, queue: &Queue) -> bool {
+        let mut job_done = false;
         for datum in self.data_handle.try_iter() {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -60,7 +61,10 @@ impl BackgroundRenderer {
 
             self.scene.update(queue, datum);
             self.scene.draw(&mut render_pass);
+            job_done = true;
         }
+
+        job_done
     }
 
     pub fn get_texture_handle(&self) -> TextureHandle {
