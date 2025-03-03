@@ -44,7 +44,8 @@ impl BackgroundRenderer {
         }
     }
 
-    pub fn render<'a>(&'a self, encoder: &mut CommandEncoder, queue: &Queue) -> bool {
+    pub fn render(&self, device: &Device, queue: &Queue, engine: &mut Engine) {
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
         let mut job_done = false;
         for datum in self.data_handle.try_iter() {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
@@ -64,7 +65,9 @@ impl BackgroundRenderer {
             job_done = true;
         }
 
-        job_done
+        if job_done {
+            engine.submit(&queue, encoder);
+        };
     }
 
     pub fn get_texture_handle(&self) -> TextureHandle {

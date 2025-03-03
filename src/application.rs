@@ -176,6 +176,65 @@ impl Simula {
             },
         );
     }
+
+    fn handle_redraw_event(
+        resized: &mut bool,
+        window: &winit::window::Window,
+        viewport: &mut Viewport,
+        surface: &mut Surface,
+        device: &Device,
+        format: &TextureFormat,
+        state: &program::State<Controls>,
+        renderer: &mut Renderer,
+        engine: &mut Engine,
+        queue: &Queue,
+        debug: &Debug,
+    ) {
+        if *resized {
+            let size = window.inner_size();
+
+            *viewport = Viewport::with_physical_size(
+                Size::new(size.width, size.height),
+                window.scale_factor(),
+            );
+
+            surface.configure(
+                device,
+                &SurfaceConfiguration {
+                    format: *format,
+                    usage: TextureUsages::RENDER_ATTACHMENT,
+                    width: size.width,
+                    height: size.height,
+                    present_mode: PresentMode::AutoVsync,
+                    alpha_mode: CompositeAlphaMode::Auto,
+                    view_formats: vec![],
+                    desired_maximum_frame_latency: 2,
+                },
+            );
+
+            *resized = false;
+        }
+
+        match surface.get_current_texture() {
+            Ok(frame) => {
+                Simula::render(
+                    frame, device, state, viewport, renderer, engine, queue, window, &debug,
+                );
+            }
+            Err(error) => match error {
+                SurfaceError::OutOfMemory => {
+                    panic!(
+                        "Swapchain error: {error}. \
+                    Rendering cannot continue."
+                    )
+                }
+                _ => {
+                    // Try rendering again next frame.
+                    window.request_redraw();
+                }
+            },
+        }
+    }
 }
 
 impl winit::application::ApplicationHandler for Simula {
@@ -253,68 +312,25 @@ impl winit::application::ApplicationHandler for Simula {
             return;
         };
 
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
-
         if let Some(background_renderer) = self.background_renderer.as_ref() {
-            if background_renderer.render(&mut encoder, &queue) {
-                engine.submit(&queue, encoder);
-            }
+            background_renderer.render(device, &queue, engine);
         }
 
         match event {
             WindowEvent::RedrawRequested => {
-                if *resized {
-                    let size = window.inner_size();
-
-                    *viewport = Viewport::with_physical_size(
-                        Size::new(size.width, size.height),
-                        window.scale_factor(),
-                    );
-
-                    surface.configure(
-                        device,
-                        &SurfaceConfiguration {
-                            format: *format,
-                            usage: TextureUsages::RENDER_ATTACHMENT,
-                            width: size.width,
-                            height: size.height,
-                            present_mode: PresentMode::AutoVsync,
-                            alpha_mode: CompositeAlphaMode::Auto,
-                            view_formats: vec![],
-                            desired_maximum_frame_latency: 2,
-                        },
-                    );
-
-                    *resized = false;
-                }
-
-                match surface.get_current_texture() {
-                    Ok(frame) => {
-                        Simula::render(
-                            frame,
-                            device, // encoder,
-                            state,
-                            viewport,
-                            renderer,
-                            engine,
-                            queue,
-                            window,
-                            &self.debug,
-                        );
-                    }
-                    Err(error) => match error {
-                        SurfaceError::OutOfMemory => {
-                            panic!(
-                                "Swapchain error: {error}. \
-                            Rendering cannot continue."
-                            )
-                        }
-                        _ => {
-                            // Try rendering again next frame.
-                            window.request_redraw();
-                        }
-                    },
-                }
+                Simula::handle_redraw_event(
+                    resized,
+                    window,
+                    viewport,
+                    surface,
+                    device,
+                    format,
+                    state,
+                    renderer,
+                    engine,
+                    queue,
+                    &self.debug,
+                );
             }
             WindowEvent::CursorMoved { position, .. } => {
                 *cursor_position = Some(position);
