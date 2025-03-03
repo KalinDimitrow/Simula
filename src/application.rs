@@ -2,11 +2,19 @@ use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
 use crate::rendering::renderers::*;
 use crate::rendering::*;
+use winit::event::{Event, StartCause};
 use winit::event_loop::EventLoopProxy;
 
 use std::sync::Arc;
 
 use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
+
+#[derive(Debug)]
+pub enum CustomEvent {
+    RequestRedraw,
+}
+
+pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
 
 #[allow(clippy::large_enum_variant)]
 enum WindowContext {
@@ -29,14 +37,14 @@ enum WindowContext {
 }
 pub struct Simula {
     ctx: WindowContext,
-    event_proxy: EventLoopProxy<()>,
+    event_proxy: CustomEventProxy,
     algorithm_processor: Option<AlgorithmProcessor>,
     background_renderer: Option<BackgroundRenderer>,
     debug: Debug,
 }
 
 impl Simula {
-    pub fn new(event_proxy: EventLoopProxy<()>) -> Self {
+    pub fn new(event_proxy: CustomEventProxy) -> Self {
         Self {
             ctx: WindowContext::Loading,
             event_proxy,
@@ -237,7 +245,7 @@ impl Simula {
     }
 }
 
-impl winit::application::ApplicationHandler for Simula {
+impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let WindowContext::Loading = self.ctx {
             let window = Self::create_window(event_loop);
@@ -250,7 +258,7 @@ impl winit::application::ApplicationHandler for Simula {
             Self::configure_surface(&mut surface, &device, &*window, format);
 
             let (data_handle, _algorithm_processor) =
-                algorithm_processor::AlgorithmProcessor::new();
+                algorithm_processor::AlgorithmProcessor::new(self.event_proxy.clone());
             let background_renderer =
                 BackgroundRenderer::new(&device, &queue, &viewport, data_handle);
 
@@ -371,11 +379,36 @@ impl winit::application::ApplicationHandler for Simula {
                 clipboard,
                 &mut self.debug,
             );
-
             // and request a redraw
             window.request_redraw();
         }
+    }
 
-        window.request_redraw();
+    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: CustomEvent) {
+        #[allow(unused_variables)]
+        let WindowContext::Ready {
+            window,
+            device,
+            queue,
+            surface,
+            format,
+            engine,
+            renderer,
+            viewport,
+            cursor_position,
+            modifiers,
+            clipboard,
+            resized,
+            state,
+        } = &mut self.ctx
+        else {
+            return;
+        };
+
+        match event {
+            CustomEvent::RequestRedraw => {
+                window.request_redraw();
+            }
+        }
     }
 }

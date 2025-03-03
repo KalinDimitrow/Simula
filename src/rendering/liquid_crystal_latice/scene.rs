@@ -10,21 +10,21 @@ pub struct Scene {
     bind_group: BindGroup,
     vertex_buffer: Buffer,
     index_buffer: Buffer,
-    uniform_buffer: Buffer,
+    _uniform_buffer: Buffer,
     storage_buffer: Buffer,
-    angle_data: Data,
+    _angle_data: Data,
     dimentions: (usize, usize),
 }
 
 impl Scene {
     pub fn new(device: &Device, queue: &Queue, dimentions: Dimentions) -> Scene {
-        let angle_data = vec![0.0; dimentions.0 * dimentions.1];
-        let (pipeline, bind_group, uniform_buffer, storage_buffer) = build_pipeline(
+        let _angle_data = vec![0.0; dimentions.0 * dimentions.1];
+        let (pipeline, bind_group, _uniform_buffer, storage_buffer) = build_pipeline(
             device,
             queue,
             TextureFormat::Bgra8UnormSrgb,
             &dimentions,
-            &angle_data,
+            &_angle_data,
         );
         let vertex_buffer = device.create_buffer_init(&util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -45,9 +45,9 @@ impl Scene {
             bind_group,
             vertex_buffer,
             index_buffer,
-            uniform_buffer,
+            _uniform_buffer,
             storage_buffer,
-            angle_data,
+            _angle_data,
             dimentions,
         }
     }

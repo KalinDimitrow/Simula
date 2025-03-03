@@ -1,3 +1,5 @@
+use crate::application::CustomEvent;
+use crate::application::CustomEventProxy;
 use crossbeam::channel::*;
 use rand::Rng;
 use std::thread;
@@ -14,7 +16,7 @@ pub struct AlgorithmProcessor {
 }
 
 impl AlgorithmProcessor {
-    pub fn new() -> (ProcessedDataHandle, Self) {
+    pub fn new(event_proxy: CustomEventProxy) -> (ProcessedDataHandle, Self) {
         let (sender, receiver): (Sender<Data>, ProcessedDataHandle) = unbounded();
         let (worker_controller, controller_listener): (
             Sender<ThreadControlMessage>,
@@ -24,7 +26,7 @@ impl AlgorithmProcessor {
         let handle = thread::spawn(move || {
             let mut count: u64 = 0;
             let size = 20 * 20;
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let storage_data: Vec<f32> = (0..size).map(|_| rng.random_range(-1.0..1.0)).collect();
 
             loop {
@@ -42,6 +44,7 @@ impl AlgorithmProcessor {
                     // .send(count as f32 * std::f32::consts::PI / 180.0)
                     .send(data)
                     .expect("Receiver is already closed");
+                let _ = event_proxy.send_event(CustomEvent::RequestRedraw);
                 count += 1;
                 thread::sleep(Duration::from_millis(40));
             }
