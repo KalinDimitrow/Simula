@@ -100,9 +100,12 @@ impl Simula {
     fn create_window(
         event_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Arc<winit::window::Window> {
+        let mut window_attributes = winit::window::WindowAttributes::default();
+        window_attributes.title = "Simula".to_owned();
+        window_attributes.maximized = true;
         let window = Arc::new(
             event_loop
-                .create_window(winit::window::WindowAttributes::default())
+                .create_window(window_attributes)
                 .expect("Create window"),
         );
 
@@ -305,7 +308,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 modifiers: ModifiersState::default(),
                 clipboard,
                 viewport,
-                resized: false,
+                resized: true,
                 state,
                 algorithm_processor,
                 background_renderer,
