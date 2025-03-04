@@ -1,4 +1,5 @@
 use crate::algorithm_processor::*;
+use crate::application::SharedContext;
 use crate::rendering::*;
 
 pub struct BackgroundRenderer {
@@ -14,8 +15,9 @@ impl BackgroundRenderer {
         queue: &Queue,
         viewport: &Viewport,
         data_handle: ProcessedDataHandle,
+        shared_context: SharedContext,
     ) -> Self {
-        let scene = Scene::new(device, queue, (20, 20));
+        let scene = Scene::new(device, queue, shared_context.latice_dimentions);
         let texture_extent = Extent3d {
             width: viewport.physical_width(),
             height: viewport.physical_height(),

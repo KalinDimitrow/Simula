@@ -16,8 +16,13 @@ pub enum CustomEvent {
 
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
 
+#[derive(Clone, Copy)]
+pub struct SharedContext {
+    pub latice_dimentions: (usize, usize),
+}
+
 #[allow(clippy::large_enum_variant)]
-enum WindowContext {
+enum DrawingContext {
     Loading,
     Ready {
         window: Arc<winit::window::Window>,
@@ -33,23 +38,25 @@ enum WindowContext {
         modifiers: ModifiersState,
         resized: bool,
         state: program::State<Controls>,
+        algorithm_processor: AlgorithmProcessor,
+        background_renderer: BackgroundRenderer,
     },
 }
 pub struct Simula {
-    ctx: WindowContext,
+    drawing_context: DrawingContext,
+    shared_context: SharedContext,
     event_proxy: CustomEventProxy,
-    algorithm_processor: Option<AlgorithmProcessor>,
-    background_renderer: Option<BackgroundRenderer>,
     debug: Debug,
 }
 
 impl Simula {
     pub fn new(event_proxy: CustomEventProxy) -> Self {
         Self {
-            ctx: WindowContext::Loading,
+            drawing_context: DrawingContext::Loading,
+            shared_context: SharedContext {
+                latice_dimentions: (100, 100),
+            },
             event_proxy,
-            algorithm_processor: None,
-            background_renderer: None,
             debug: Debug::new(),
         }
     }
@@ -247,7 +254,7 @@ impl Simula {
 
 impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        if let WindowContext::Loading = self.ctx {
+        if let DrawingContext::Loading = self.drawing_context {
             let window = Self::create_window(event_loop);
             let viewport = Self::get_viewport(&*window);
             let clipboard = Clipboard::connect(window.clone());
@@ -257,10 +264,16 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             let (format, adapter, device, queue) = Self::get_gpu_bits(&instance, &surface);
             Self::configure_surface(&mut surface, &device, &*window, format);
 
-            let (data_handle, _algorithm_processor) =
+            let (data_handle, mut algorithm_processor) =
                 algorithm_processor::AlgorithmProcessor::new(self.event_proxy.clone());
-            let background_renderer =
-                BackgroundRenderer::new(&device, &queue, &viewport, data_handle);
+            let background_renderer = BackgroundRenderer::new(
+                &device,
+                &queue,
+                &viewport,
+                data_handle,
+                self.shared_context,
+            );
+            algorithm_processor.start(self.shared_context);
 
             let engine = Engine::new(
                 &adapter,
@@ -278,12 +291,9 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 &mut self.debug,
             );
 
-            self.background_renderer = Some(background_renderer);
-            self.algorithm_processor = Some(_algorithm_processor);
-
             event_loop.set_control_flow(ControlFlow::Wait);
 
-            self.ctx = WindowContext::Ready {
+            self.drawing_context = DrawingContext::Ready {
                 window,
                 device,
                 queue,
@@ -297,6 +307,8 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 viewport,
                 resized: false,
                 state,
+                algorithm_processor,
+                background_renderer,
             };
         }
     }
@@ -307,7 +319,8 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
-        let WindowContext::Ready {
+        #[allow(unused_variables)]
+        let DrawingContext::Ready {
             window,
             device,
             queue,
@@ -321,14 +334,14 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             clipboard,
             resized,
             state,
-        } = &mut self.ctx
+            algorithm_processor,
+            background_renderer,
+        } = &mut self.drawing_context
         else {
             return;
         };
 
-        if let Some(background_renderer) = self.background_renderer.as_ref() {
-            background_renderer.render(device, &queue, engine);
-        }
+        background_renderer.render(device, &queue, engine);
 
         match event {
             WindowEvent::RedrawRequested => {
@@ -392,7 +405,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
     fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: CustomEvent) {
         #[allow(unused_variables)]
-        let WindowContext::Ready {
+        let DrawingContext::Ready {
             window,
             device,
             queue,
@@ -406,7 +419,9 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             clipboard,
             resized,
             state,
-        } = &mut self.ctx
+            algorithm_processor,
+            background_renderer,
+        } = &mut self.drawing_context
         else {
             return;
         };
