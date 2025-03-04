@@ -68,8 +68,8 @@ pub fn generate_vertex_buffer(rows: usize, cols: usize) -> Vec<OrbitingVertex> {
 
     let row_step = 2.0 / rows as f32;
     let col_step = 2.0 / cols as f32;
-    let spacing_x = col_step / 3.0;
-    let spacing_y = row_step / 3.0;
+    let spacing_x = 0.0; //col_step / 3.0;
+    let spacing_y = 0.0; //row_step / 3.0;
     let mut index = 0;
 
     for row in 0..rows {
