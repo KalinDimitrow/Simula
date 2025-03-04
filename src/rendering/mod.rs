@@ -7,7 +7,7 @@ pub use iced_wgpu::wgpu::util::DeviceExt;
 pub use iced_wgpu::wgpu::IndexFormat;
 pub use iced_wgpu::wgpu::TextureDescriptor;
 pub use iced_wgpu::wgpu::*;
-pub use iced_wgpu::{wgpu, Engine, Renderer};
+pub use iced_wgpu::{Engine, Renderer};
 pub use iced_winit::conversion;
 pub use iced_winit::core::renderer;
 pub use iced_winit::core::{Color, Font, Pixels, Theme};

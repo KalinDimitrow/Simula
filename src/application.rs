@@ -2,7 +2,7 @@ use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
 use crate::rendering::renderers::*;
 use crate::rendering::*;
-use winit::event::{Event, StartCause};
+use iced_wgpu::graphics::Antialiasing;
 use winit::event_loop::EventLoopProxy;
 
 use std::sync::Arc;
@@ -262,7 +262,13 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             let background_renderer =
                 BackgroundRenderer::new(&device, &queue, &viewport, data_handle);
 
-            let engine = Engine::new(&adapter, &device, &queue, format, None);
+            let engine = Engine::new(
+                &adapter,
+                &device,
+                &queue,
+                format,
+                Some(Antialiasing::MSAAx4),
+            );
             let mut renderer = Renderer::new(&device, &engine, Font::default(), Pixels::from(16));
 
             let state = program::State::new(
