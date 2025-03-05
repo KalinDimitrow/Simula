@@ -54,7 +54,7 @@ impl Simula {
         Self {
             drawing_context: DrawingContext::Loading,
             shared_context: SharedContext {
-                latice_dimentions: (100, 100),
+                latice_dimentions: (300, 300),
             },
             event_proxy,
             debug: Debug::new(),
