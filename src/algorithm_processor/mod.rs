@@ -56,7 +56,8 @@ impl AlgorithmProcessor {
             .expect("There is serious bug the threading code in algorithm processor");
         self.worker = Some(thread::spawn(move || {
             let mut count: u64 = 0;
-            let size = shared_ctx.latice_dimentions.0 * shared_ctx.latice_dimentions.1;
+            let latice_dimentions = { shared_ctx.lock().latice_dimentions };
+            let size = latice_dimentions.0 * latice_dimentions.1;
             let mut rng = rand::rng();
             let storage_data: Vec<f32> = (0..size).map(|_| rng.random_range(-1.0..1.0)).collect();
 

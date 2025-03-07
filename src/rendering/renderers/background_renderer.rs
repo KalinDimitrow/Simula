@@ -17,7 +17,8 @@ impl BackgroundRenderer {
         data_handle: ProcessedDataHandle,
         shared_context: SharedContext,
     ) -> Self {
-        let scene = Scene::new(device, queue, shared_context.latice_dimentions);
+        let latice_dimentions = { shared_context.lock().latice_dimentions };
+        let scene = Scene::new(device, queue, latice_dimentions);
         let texture_extent = Extent3d {
             width: viewport.physical_width(),
             height: viewport.physical_height(),

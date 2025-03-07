@@ -1,3 +1,6 @@
+mod shared_context;
+pub use shared_context::*;
+
 use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
 use crate::rendering::renderers::*;
@@ -15,11 +18,6 @@ pub enum CustomEvent {
 }
 
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
-
-#[derive(Clone, Copy)]
-pub struct SharedContext {
-    pub latice_dimentions: (usize, usize),
-}
 
 #[allow(clippy::large_enum_variant)]
 enum DrawingContext {
@@ -53,9 +51,7 @@ impl Simula {
     pub fn new(event_proxy: CustomEventProxy) -> Self {
         Self {
             drawing_context: DrawingContext::Loading,
-            shared_context: SharedContext {
-                latice_dimentions: (300, 300),
-            },
+            shared_context: SharedContext::new((300, 300)),
             event_proxy,
             debug: Debug::new(),
         }
@@ -269,14 +265,15 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
             let (data_handle, mut algorithm_processor) =
                 algorithm_processor::AlgorithmProcessor::new(self.event_proxy.clone());
+            algorithm_processor.start(self.shared_context.clone());
             let background_renderer = BackgroundRenderer::new(
                 &device,
                 &queue,
                 &viewport,
                 data_handle,
-                self.shared_context,
+                self.shared_context.clone(),
             );
-            algorithm_processor.start(self.shared_context);
+            algorithm_processor.start(self.shared_context.clone());
 
             let engine = Engine::new(
                 &adapter,

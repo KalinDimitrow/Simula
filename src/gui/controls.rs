@@ -14,7 +14,7 @@ use widget::{button, combo_box, pick_list};
 
 use rfd::FileDialog;
 
-const InvalidInputColor: Color = Color {
+const INVALIDINPUTCOLOR: Color = Color {
     r: 1.0,
     b: 0.0,
     g: 0.0,
@@ -51,7 +51,7 @@ impl Controls {
     fn valid_path_style(&self, theme: &Theme, status: text_input::Status) -> text_input::Style {
         let mut style = text_input::default(theme, status);
         if !Path::new(&self.output_path).is_dir() {
-            style.value = InvalidInputColor;
+            style.value = INVALIDINPUTCOLOR;
         }
 
         style
