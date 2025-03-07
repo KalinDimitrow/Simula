@@ -1,19 +1,16 @@
 mod shared_context;
 mod wininit_wrapper;
+mod components;
 
 pub use shared_context::*;
-
-use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
-use crate::rendering::renderers::*;
 use crate::rendering::*;
 use winit::event_loop::EventLoopProxy;
 use self::wininit_wrapper::WininitWrapper;
+use self::components::Components;
 
-use std::sync::Arc;
-
-use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
-use crate::rendering::webgpu_wrapper::WebGPUWrapper;
+use winit::event::WindowEvent;
+use crate::rendering::wgpu_wrapper::WGPUWrapper;
 
 #[derive(Debug)]
 pub enum CustomEvent {
@@ -23,31 +20,16 @@ pub enum CustomEvent {
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
 
 #[allow(clippy::large_enum_variant)]
-enum DrawingContext {
-    Loading,
+pub enum Simula {
+    Loading(CustomEventProxy),
     Ready {
-        wininit_wrapper: WininitWrapper,
-        web_gpuwrapper: WebGPUWrapper,
-        state: program::State<Controls>,
-        algorithm_processor: AlgorithmProcessor,
-        background_renderer: BackgroundRenderer,
+        components: Components,
     },
-}
-pub struct Simula {
-    drawing_context: DrawingContext,
-    shared_context: SharedContext,
-    event_proxy: CustomEventProxy,
-    debug: Debug,
 }
 
 impl Simula {
     pub fn new(event_proxy: CustomEventProxy) -> Self {
-        Self {
-            drawing_context: DrawingContext::Loading,
-            shared_context: SharedContext::new((300, 300)),
-            event_proxy,
-            debug: Debug::new(),
-        }
+        Self::Loading(event_proxy)
     }
 
     fn render(
@@ -87,23 +69,23 @@ impl Simula {
     }
 
     fn handle_redraw_event(
-        wininit_wrapper: &mut WininitWrapper,
-        web_gpuwrapper: &mut WebGPUWrapper,
+        win: &mut WininitWrapper,
+        wgpu: &mut WGPUWrapper,
         state: &program::State<Controls>,
         debug: &Debug,
     ) {
-        if wininit_wrapper.resized {
-            let size = wininit_wrapper.window.inner_size();
+        if win.resized {
+            let size = win.window.inner_size();
 
-            wininit_wrapper.viewport = Viewport::with_physical_size(
+            win.viewport = Viewport::with_physical_size(
                 Size::new(size.width, size.height),
-                wininit_wrapper.window.scale_factor(),
+                win.window.scale_factor(),
             );
 
-            web_gpuwrapper.surface.configure(
-                &web_gpuwrapper.device,
+            wgpu.surface.configure(
+                &wgpu.device,
                 &SurfaceConfiguration {
-                    format: web_gpuwrapper.format,
+                    format: wgpu.format,
                     usage: TextureUsages::RENDER_ATTACHMENT,
                     width: size.width,
                     height: size.height,
@@ -114,13 +96,13 @@ impl Simula {
                 },
             );
 
-            wininit_wrapper.resized = false;
+            win.resized = false;
         }
 
-        match web_gpuwrapper.surface.get_current_texture() {
+        match wgpu.surface.get_current_texture() {
             Ok(frame) => {
                 Simula::render(
-                    frame, &web_gpuwrapper.device, state, &wininit_wrapper.viewport, &mut web_gpuwrapper.renderer, &mut web_gpuwrapper.engine, &web_gpuwrapper.queue, &wininit_wrapper.window, &debug,
+                    frame, &wgpu.device, state, &win.viewport, &mut wgpu.renderer, &mut wgpu.engine, &wgpu.queue, &win.window, &debug,
                 );
             }
             Err(error) => match error {
@@ -132,7 +114,7 @@ impl Simula {
                 }
                 _ => {
                     // Try rendering again next frame.
-                    wininit_wrapper.window.request_redraw();
+                    win.window.request_redraw();
                 }
             },
         }
@@ -141,36 +123,8 @@ impl Simula {
 
 impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        if let DrawingContext::Loading = self.drawing_context {
-            let wininit_wrapper = WininitWrapper::new(event_loop);
-            let mut web_gpuwrapper = WebGPUWrapper::new(wininit_wrapper.window.clone());
-
-            let (data_handle, mut algorithm_processor) =
-                algorithm_processor::AlgorithmProcessor::new(self.event_proxy.clone());
-            algorithm_processor.start(self.shared_context.clone());
-            let background_renderer = BackgroundRenderer::new(
-                &web_gpuwrapper,
-                &wininit_wrapper.viewport,
-                data_handle,
-                self.shared_context.clone(),
-            );
-            algorithm_processor.start(self.shared_context.clone());
-            let state = program::State::new(
-                Controls::new(background_renderer.get_texture_handle()),
-                wininit_wrapper.viewport.logical_size(),
-                &mut web_gpuwrapper.renderer,
-                &mut self.debug,
-            );
-
-            event_loop.set_control_flow(ControlFlow::Wait);
-
-            self.drawing_context = DrawingContext::Ready {
-                wininit_wrapper,
-                web_gpuwrapper,
-                state,
-                algorithm_processor,
-                background_renderer,
-            };
+        if let Self::Loading(event_proxy) = self {
+            *self =  Self::Ready {components: Components::new(event_proxy.clone(), event_loop)}
         }
     }
 
@@ -180,37 +134,32 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
-        #[allow(unused_variables)]
-        let DrawingContext::Ready {
-            wininit_wrapper,
-            web_gpuwrapper,
-            state,
-            algorithm_processor,
-            background_renderer,
-        } = &mut self.drawing_context
+        let Self::Ready {
+            components
+        } = self
         else {
             return;
         };
 
-        background_renderer.render(web_gpuwrapper);
+        components.background_renderer.render(&mut components.wgpu);
 
         match event {
             WindowEvent::RedrawRequested => {
                 Simula::handle_redraw_event(
-                    wininit_wrapper,
-                    web_gpuwrapper,
-                    state,
-                    &self.debug,
+                    &mut components.win,
+                    &mut components.wgpu,
+                    &components.state,
+                    &components.debug,
                 );
             }
             WindowEvent::CursorMoved { position, .. } => {
-                wininit_wrapper.cursor_position = Some(position);
+                components.win.cursor_position = Some(position);
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
-                wininit_wrapper.modifiers = new_modifiers.state();
+                components.win.modifiers = new_modifiers.state();
             }
             WindowEvent::Resized(_) => {
-                wininit_wrapper.resized = true;
+                components.win.resized = true;
             }
             WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -220,49 +169,45 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
         // Map window event to iced event
         if let Some(event) =
-            conversion::window_event(event, wininit_wrapper.window.scale_factor(), wininit_wrapper.modifiers)
+            conversion::window_event(event, components.win.window.scale_factor(), components.win.modifiers)
         {
-            state.queue_event(event);
+            components.state.queue_event(event);
         }
 
         // If there are events pending
-        if !state.is_queue_empty() {
+        if !components.state.is_queue_empty() {
             // We update iced
-            let _ = state.update(
-                wininit_wrapper.viewport.logical_size(),
-                wininit_wrapper.cursor_position
-                    .map(|p| conversion::cursor_position(p, wininit_wrapper.viewport.scale_factor()))
+            let _ = components.state.update(
+                components.win.viewport.logical_size(),
+                components.win.cursor_position
+                    .map(|p| conversion::cursor_position(p, components.win.viewport.scale_factor()))
                     .map(mouse::Cursor::Available)
                     .unwrap_or(mouse::Cursor::Unavailable),
-                &mut web_gpuwrapper.renderer,
+                &mut components.wgpu.renderer,
                 &Theme::Dark,
                 &renderer::Style {
                     text_color: Color::WHITE,
                 },
-                &mut wininit_wrapper.clipboard,
-                &mut self.debug,
+                &mut components.win.clipboard,
+                &mut components.debug,
             );
             // and request a redraw
-            wininit_wrapper.window.request_redraw();
+            components.win.window.request_redraw();
         }
     }
 
     fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: CustomEvent) {
         #[allow(unused_variables)]
-        let DrawingContext::Ready {
-            wininit_wrapper,
-            web_gpuwrapper,
-            state,
-            algorithm_processor,
-            background_renderer,
-        } = &mut self.drawing_context
+        let Self::Ready {
+            components
+        } = self
         else {
             return;
         };
 
         match event {
             CustomEvent::RequestRedraw => {
-                wininit_wrapper.window.request_redraw();
+                components.win.window.request_redraw();
             }
         }
     }

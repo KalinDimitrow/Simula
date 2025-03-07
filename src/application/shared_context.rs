@@ -2,7 +2,7 @@ use crate::algorithm_processor::{self, *};
 pub(super) mod internal {
     use super::*;
     pub struct SharedContext {
-        pub latice_dimentions: (usize, usize),
+        pub lattice_dimension: (usize, usize),
     }
 
     impl SharedContext {}
@@ -14,9 +14,9 @@ use std::sync::{Arc, Mutex};
 pub struct SharedContext(Arc<Mutex<internal::SharedContext>>);
 
 impl SharedContext {
-    pub fn new(dimentions: (usize, usize)) -> Self {
+    pub fn new(dimensions: (usize, usize)) -> Self {
         SharedContext(Arc::new(Mutex::new(internal::SharedContext {
-            latice_dimentions: dimentions,
+            lattice_dimension: dimensions,
         })))
     }
 

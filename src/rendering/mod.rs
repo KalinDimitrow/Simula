@@ -21,7 +21,7 @@ pub mod generic_pipeline;
 pub mod liquid_crystal_latice;
 pub mod renderers;
 pub mod vertex;
-pub mod webgpu_wrapper;
+pub mod wgpu_wrapper;
 
 use std::sync::{Arc, Mutex};
 

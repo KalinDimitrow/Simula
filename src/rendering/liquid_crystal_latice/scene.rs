@@ -2,7 +2,7 @@ use super::scene_generation::generate_vertex_buffer;
 use crate::algorithm_processor::*;
 use crate::rendering::assets::*;
 use crate::rendering::*;
-use crate::rendering::webgpu_wrapper::WebGPUWrapper;
+use crate::rendering::wgpu_wrapper::WGPUWrapper;
 
 type Dimentions = (usize, usize);
 
@@ -18,7 +18,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(webgpu_wrapper: &WebGPUWrapper, dimentions: Dimentions) -> Scene {
+    pub fn new(webgpu_wrapper: &WGPUWrapper, dimentions: Dimentions) -> Scene {
         let _angle_data = vec![0.0; dimentions.0 * dimentions.1];
         let (pipeline, bind_group, _uniform_buffer, storage_buffer) = build_pipeline(
             &webgpu_wrapper.device,

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 pub use iced_wgpu::*;
 use crate::rendering::*;
-use crate::rendering::webgpu_wrapper::graphics::Antialiasing;
+use crate::rendering::wgpu_wrapper::graphics::Antialiasing;
 
-pub struct WebGPUWrapper {
+pub struct WGPUWrapper {
     pub backends: Backends,
     pub instance: Instance,
     pub device: Device,
@@ -14,7 +14,7 @@ pub struct WebGPUWrapper {
     pub renderer: Renderer,
 }
 
-impl WebGPUWrapper {
+impl WGPUWrapper {
     pub fn new(window: Arc<winit::window::Window>) -> Self {
         let backends = util::backend_bits_from_env().unwrap_or_default();
         let instance = Self::create_instance(backends);

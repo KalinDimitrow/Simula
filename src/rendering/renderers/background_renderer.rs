@@ -1,7 +1,7 @@
 use crate::algorithm_processor::*;
 use crate::application::SharedContext;
 use crate::rendering::*;
-use crate::rendering::webgpu_wrapper::WebGPUWrapper;
+use crate::rendering::wgpu_wrapper::WGPUWrapper;
 
 pub struct BackgroundRenderer {
     pub texture: TextureHandle,
@@ -12,22 +12,20 @@ pub struct BackgroundRenderer {
 
 impl BackgroundRenderer {
     pub fn new(
-        wgpu_wrapper: &WebGPUWrapper,
-        // device: &Device,
-        // queue: &Queue,
+        wgpu: &WGPUWrapper,
         viewport: &Viewport,
         data_handle: ProcessedDataHandle,
         shared_context: SharedContext,
     ) -> Self {
-        let latice_dimentions = { shared_context.lock().latice_dimentions };
-        let scene = Scene::new(wgpu_wrapper, latice_dimentions);
+        let lattice_dimensions = { shared_context.lock().lattice_dimension };
+        let scene = Scene::new(wgpu, lattice_dimensions);
         let texture_extent = Extent3d {
             width: viewport.physical_width(),
             height: viewport.physical_height(),
             depth_or_array_layers: 1,
         };
 
-        let texture = wgpu_wrapper.device.create_texture(&TextureDescriptor {
+        let texture = wgpu.device.create_texture(&TextureDescriptor {
             label: Some("Render Texture"),
             size: texture_extent,
             mip_level_count: 1,
@@ -49,8 +47,8 @@ impl BackgroundRenderer {
         }
     }
 
-    pub fn render(&self, web_gpuwrapper: &mut WebGPUWrapper) {
-        let mut encoder = web_gpuwrapper.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+    pub fn render(&self, wgpu: &mut WGPUWrapper) {
+        let mut encoder = wgpu.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
         let mut job_done = false;
         for datum in self.data_handle.try_iter() {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
@@ -65,13 +63,13 @@ impl BackgroundRenderer {
                 timestamp_writes: None,
             });
 
-            self.scene.update(&web_gpuwrapper.queue, datum);
+            self.scene.update(&wgpu.queue, datum);
             self.scene.draw(&mut render_pass);
             job_done = true;
         }
 
         if job_done {
-            web_gpuwrapper.engine.submit(&web_gpuwrapper.queue, encoder);
+            wgpu.engine.submit(&wgpu.queue, encoder);
         };
     }
 
