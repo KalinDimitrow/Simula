@@ -5,12 +5,12 @@ use crate::algorithm_processor::{self, *};
 use crate::gui::controls::Controls;
 use crate::rendering::renderers::*;
 use crate::rendering::*;
-use iced_wgpu::graphics::Antialiasing;
 use winit::event_loop::EventLoopProxy;
 
 use std::sync::Arc;
 
 use winit::{event::WindowEvent, event_loop::ControlFlow, keyboard::ModifiersState};
+use crate::rendering::webgpu_wrapper::WebGPUWrapper;
 
 #[derive(Debug)]
 pub enum CustomEvent {
@@ -24,12 +24,7 @@ enum DrawingContext {
     Loading,
     Ready {
         window: Arc<winit::window::Window>,
-        device: Device,
-        queue: Queue,
-        surface: Surface<'static>,
-        format: TextureFormat,
-        engine: Engine,
-        renderer: Renderer,
+        web_gpuwrapper: WebGPUWrapper,
         cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
         clipboard: Clipboard,
         viewport: Viewport,
@@ -115,93 +110,13 @@ impl Simula {
             window.scale_factor(),
         )
     }
-
-    fn create_instance(backend: Backends) -> Instance {
-        Instance::new(InstanceDescriptor {
-            backends: backend,
-            ..Default::default()
-        })
-    }
-
-    fn create_surface<'a>(instance: &Instance, window: Arc<winit::window::Window>) -> Surface<'a> {
-        instance
-            .create_surface(window.clone())
-            .expect("Create window surface")
-    }
-
-    fn get_gpu_bits(
-        instance: &Instance,
-        surface: &Surface,
-    ) -> (TextureFormat, Adapter, Device, Queue) {
-        futures::futures::executor::block_on(async {
-            let adapter = util::initialize_adapter_from_env_or_default(&instance, Some(&surface))
-                .await
-                .expect("Create adapter");
-
-            let adapter_features = adapter.features();
-
-            let capabilities = surface.get_capabilities(&adapter);
-
-            let (device, queue) = adapter
-                .request_device(
-                    &DeviceDescriptor {
-                        label: None,
-                        required_features: adapter_features & Features::default(),
-                        required_limits: Limits::default(),
-                    },
-                    None,
-                )
-                .await
-                .expect("Request device");
-
-            (
-                capabilities
-                    .formats
-                    .iter()
-                    .copied()
-                    .find(TextureFormat::is_srgb)
-                    .or_else(|| capabilities.formats.first().copied())
-                    .expect("Get preferred format"),
-                adapter,
-                device,
-                queue,
-            )
-        })
-    }
-
-    fn configure_surface(
-        surface: &mut Surface,
-        device: &Device,
-        window: &winit::window::Window,
-        format: TextureFormat,
-    ) {
-        let physical_size = window.inner_size();
-        surface.configure(
-            &device,
-            &SurfaceConfiguration {
-                usage: TextureUsages::RENDER_ATTACHMENT,
-                format,
-                width: physical_size.width,
-                height: physical_size.height,
-                present_mode: PresentMode::AutoVsync,
-                alpha_mode: CompositeAlphaMode::Auto,
-                view_formats: vec![],
-                desired_maximum_frame_latency: 2,
-            },
-        );
-    }
-
+    
     fn handle_redraw_event(
         resized: &mut bool,
         window: &winit::window::Window,
         viewport: &mut Viewport,
-        surface: &mut Surface,
-        device: &Device,
-        format: &TextureFormat,
+        web_gpuwrapper: &mut WebGPUWrapper,
         state: &program::State<Controls>,
-        renderer: &mut Renderer,
-        engine: &mut Engine,
-        queue: &Queue,
         debug: &Debug,
     ) {
         if *resized {
@@ -212,10 +127,10 @@ impl Simula {
                 window.scale_factor(),
             );
 
-            surface.configure(
-                device,
+            web_gpuwrapper.surface.configure(
+                &web_gpuwrapper.device,
                 &SurfaceConfiguration {
-                    format: *format,
+                    format: web_gpuwrapper.format,
                     usage: TextureUsages::RENDER_ATTACHMENT,
                     width: size.width,
                     height: size.height,
@@ -229,10 +144,10 @@ impl Simula {
             *resized = false;
         }
 
-        match surface.get_current_texture() {
+        match web_gpuwrapper.surface.get_current_texture() {
             Ok(frame) => {
                 Simula::render(
-                    frame, device, state, viewport, renderer, engine, queue, window, &debug,
+                    frame, &web_gpuwrapper.device, state, viewport, &mut web_gpuwrapper.renderer, &mut web_gpuwrapper.engine, &web_gpuwrapper.queue, window, &debug,
                 );
             }
             Err(error) => match error {
@@ -257,37 +172,22 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             let window = Self::create_window(event_loop);
             let viewport = Self::get_viewport(&*window);
             let clipboard = Clipboard::connect(window.clone());
-            let backend = util::backend_bits_from_env().unwrap_or_default();
-            let instance = Self::create_instance(backend);
-            let mut surface = Self::create_surface(&instance, window.clone());
-            let (format, adapter, device, queue) = Self::get_gpu_bits(&instance, &surface);
-            Self::configure_surface(&mut surface, &device, &*window, format);
+            let mut web_gpuwrapper = WebGPUWrapper::new(window.clone());
 
             let (data_handle, mut algorithm_processor) =
                 algorithm_processor::AlgorithmProcessor::new(self.event_proxy.clone());
             algorithm_processor.start(self.shared_context.clone());
             let background_renderer = BackgroundRenderer::new(
-                &device,
-                &queue,
+                &web_gpuwrapper,
                 &viewport,
                 data_handle,
                 self.shared_context.clone(),
             );
             algorithm_processor.start(self.shared_context.clone());
-
-            let engine = Engine::new(
-                &adapter,
-                &device,
-                &queue,
-                format,
-                Some(Antialiasing::MSAAx4),
-            );
-            let mut renderer = Renderer::new(&device, &engine, Font::default(), Pixels::from(16));
-
             let state = program::State::new(
                 Controls::new(background_renderer.get_texture_handle()),
                 viewport.logical_size(),
-                &mut renderer,
+                &mut web_gpuwrapper.renderer,
                 &mut self.debug,
             );
 
@@ -295,12 +195,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
             self.drawing_context = DrawingContext::Ready {
                 window,
-                device,
-                queue,
-                surface,
-                format,
-                engine,
-                renderer,
+                web_gpuwrapper,
                 cursor_position: None,
                 modifiers: ModifiersState::default(),
                 clipboard,
@@ -322,12 +217,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         #[allow(unused_variables)]
         let DrawingContext::Ready {
             window,
-            device,
-            queue,
-            surface,
-            format,
-            engine,
-            renderer,
+            web_gpuwrapper,
             viewport,
             cursor_position,
             modifiers,
@@ -341,7 +231,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             return;
         };
 
-        background_renderer.render(device, &queue, engine);
+        background_renderer.render(web_gpuwrapper);
 
         match event {
             WindowEvent::RedrawRequested => {
@@ -349,13 +239,8 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                     resized,
                     window,
                     viewport,
-                    surface,
-                    device,
-                    format,
+                    web_gpuwrapper,
                     state,
-                    renderer,
-                    engine,
-                    queue,
                     &self.debug,
                 );
             }
@@ -390,7 +275,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                     .map(|p| conversion::cursor_position(p, viewport.scale_factor()))
                     .map(mouse::Cursor::Available)
                     .unwrap_or(mouse::Cursor::Unavailable),
-                renderer,
+                &mut web_gpuwrapper.renderer,
                 &Theme::Dark,
                 &renderer::Style {
                     text_color: Color::WHITE,
@@ -407,12 +292,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         #[allow(unused_variables)]
         let DrawingContext::Ready {
             window,
-            device,
-            queue,
-            surface,
-            format,
-            engine,
-            renderer,
+            web_gpuwrapper,
             viewport,
             cursor_position,
             modifiers,

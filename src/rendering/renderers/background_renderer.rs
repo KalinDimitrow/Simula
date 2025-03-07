@@ -1,6 +1,7 @@
 use crate::algorithm_processor::*;
 use crate::application::SharedContext;
 use crate::rendering::*;
+use crate::rendering::webgpu_wrapper::WebGPUWrapper;
 
 pub struct BackgroundRenderer {
     pub texture: TextureHandle,
@@ -11,21 +12,22 @@ pub struct BackgroundRenderer {
 
 impl BackgroundRenderer {
     pub fn new(
-        device: &Device,
-        queue: &Queue,
+        wgpu_wrapper: &WebGPUWrapper,
+        // device: &Device,
+        // queue: &Queue,
         viewport: &Viewport,
         data_handle: ProcessedDataHandle,
         shared_context: SharedContext,
     ) -> Self {
         let latice_dimentions = { shared_context.lock().latice_dimentions };
-        let scene = Scene::new(device, queue, latice_dimentions);
+        let scene = Scene::new(wgpu_wrapper, latice_dimentions);
         let texture_extent = Extent3d {
             width: viewport.physical_width(),
             height: viewport.physical_height(),
             depth_or_array_layers: 1,
         };
 
-        let texture = device.create_texture(&TextureDescriptor {
+        let texture = wgpu_wrapper.device.create_texture(&TextureDescriptor {
             label: Some("Render Texture"),
             size: texture_extent,
             mip_level_count: 1,
@@ -47,8 +49,8 @@ impl BackgroundRenderer {
         }
     }
 
-    pub fn render(&self, device: &Device, queue: &Queue, engine: &mut Engine) {
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+    pub fn render(&self, web_gpuwrapper: &mut WebGPUWrapper) {
+        let mut encoder = web_gpuwrapper.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
         let mut job_done = false;
         for datum in self.data_handle.try_iter() {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
@@ -63,13 +65,13 @@ impl BackgroundRenderer {
                 timestamp_writes: None,
             });
 
-            self.scene.update(queue, datum);
+            self.scene.update(&web_gpuwrapper.queue, datum);
             self.scene.draw(&mut render_pass);
             job_done = true;
         }
 
         if job_done {
-            engine.submit(&queue, encoder);
+            web_gpuwrapper.engine.submit(&web_gpuwrapper.queue, encoder);
         };
     }
 

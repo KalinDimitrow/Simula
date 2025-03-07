@@ -2,6 +2,7 @@ use super::scene_generation::generate_vertex_buffer;
 use crate::algorithm_processor::*;
 use crate::rendering::assets::*;
 use crate::rendering::*;
+use crate::rendering::webgpu_wrapper::WebGPUWrapper;
 
 type Dimentions = (usize, usize);
 
@@ -17,16 +18,16 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(device: &Device, queue: &Queue, dimentions: Dimentions) -> Scene {
+    pub fn new(webgpu_wrapper: &WebGPUWrapper, dimentions: Dimentions) -> Scene {
         let _angle_data = vec![0.0; dimentions.0 * dimentions.1];
         let (pipeline, bind_group, _uniform_buffer, storage_buffer) = build_pipeline(
-            device,
-            queue,
+            &webgpu_wrapper.device,
+            &webgpu_wrapper.queue,
             TextureFormat::Bgra8UnormSrgb,
             &dimentions,
             &_angle_data,
         );
-        let vertex_buffer = device.create_buffer_init(&util::BufferInitDescriptor {
+        let vertex_buffer = webgpu_wrapper.device.create_buffer_init(&util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(
                 generate_vertex_buffer(dimentions.0, dimentions.1).as_slice(),
@@ -34,7 +35,7 @@ impl Scene {
             usage: BufferUsages::VERTEX,
         });
 
-        let index_buffer = device.create_buffer_init(&util::BufferInitDescriptor {
+        let index_buffer = webgpu_wrapper.device.create_buffer_init(&util::BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(INDICES),
             usage: BufferUsages::INDEX,
