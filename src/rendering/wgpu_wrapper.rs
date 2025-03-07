@@ -3,9 +3,10 @@ pub use iced_wgpu::*;
 use crate::rendering::*;
 use crate::rendering::wgpu_wrapper::graphics::Antialiasing;
 
+#[allow(unused_variables)]
 pub struct WGPUWrapper {
-    pub backends: Backends,
-    pub instance: Instance,
+    _backends: Backends,
+    _instance: Instance,
     pub device: Device,
     pub queue: Queue,
     pub surface: Surface<'static>,
@@ -31,8 +32,8 @@ impl WGPUWrapper {
 
         Self::configure_surface(&mut surface, &device, &*window, format);
         Self {
-            backends,
-            instance,
+            _backends: backends,
+            _instance: instance,
             device,
             queue,
             surface,

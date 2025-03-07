@@ -3,14 +3,11 @@ mod wininit_wrapper;
 mod components;
 
 pub use shared_context::*;
-use crate::gui::controls::Controls;
 use crate::rendering::*;
 use winit::event_loop::EventLoopProxy;
-use self::wininit_wrapper::WininitWrapper;
 use self::components::Components;
 
 use winit::event::WindowEvent;
-use crate::rendering::wgpu_wrapper::WGPUWrapper;
 
 #[derive(Debug)]
 pub enum CustomEvent {
@@ -34,58 +31,48 @@ impl Simula {
 
     fn render(
         frame: SurfaceTexture,
-        device: &Device,
-        state: &program::State<Controls>,
-        viewport: &Viewport,
-        renderer: &mut Renderer,
-        engine: &mut Engine,
-        queue: &Queue,
-        window: &winit::window::Window,
-        debug: &Debug,
+        components: &mut Components
     ) {
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+        let mut encoder = components.wgpu.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
 
-        renderer.present(
-            engine,
-            device,
-            queue,
+        components.wgpu.renderer.present(
+            &mut components.wgpu.engine,
+            &mut components.wgpu.device,
+            &mut components.wgpu.queue,
             &mut encoder,
             None,
             frame.texture.format(),
             &view,
-            viewport,
-            &debug.overlay(),
+            &components.win.viewport,
+            &components.debug.overlay(),
         );
 
         // Then we submit the work
-        engine.submit(queue, encoder);
+        components.wgpu.engine.submit(&components.wgpu.queue, encoder);
         frame.present();
 
         // Update the mouse cursor
-        window.set_cursor(conversion::mouse_interaction(
-            state.mouse_interaction(),
+        components.win.window.set_cursor(conversion::mouse_interaction(
+            components.state.mouse_interaction(),
         ));
     }
 
     fn handle_redraw_event(
-        win: &mut WininitWrapper,
-        wgpu: &mut WGPUWrapper,
-        state: &program::State<Controls>,
-        debug: &Debug,
+        components: &mut Components
     ) {
-        if win.resized {
-            let size = win.window.inner_size();
+        if components.win.resized {
+            let size = components.win.window.inner_size();
 
-            win.viewport = Viewport::with_physical_size(
+            components.win.viewport = Viewport::with_physical_size(
                 Size::new(size.width, size.height),
-                win.window.scale_factor(),
+                components.win.window.scale_factor(),
             );
 
-            wgpu.surface.configure(
-                &wgpu.device,
+            components.wgpu.surface.configure(
+                &components.wgpu.device,
                 &SurfaceConfiguration {
-                    format: wgpu.format,
+                    format: components.wgpu.format,
                     usage: TextureUsages::RENDER_ATTACHMENT,
                     width: size.width,
                     height: size.height,
@@ -96,13 +83,13 @@ impl Simula {
                 },
             );
 
-            win.resized = false;
+            components.win.resized = false;
         }
 
-        match wgpu.surface.get_current_texture() {
+        match components.wgpu.surface.get_current_texture() {
             Ok(frame) => {
                 Simula::render(
-                    frame, &wgpu.device, state, &win.viewport, &mut wgpu.renderer, &mut wgpu.engine, &wgpu.queue, &win.window, &debug,
+                    frame, components,
                 );
             }
             Err(error) => match error {
@@ -114,7 +101,7 @@ impl Simula {
                 }
                 _ => {
                     // Try rendering again next frame.
-                    win.window.request_redraw();
+                    components.win.window.request_redraw();
                 }
             },
         }
@@ -145,12 +132,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
         match event {
             WindowEvent::RedrawRequested => {
-                Simula::handle_redraw_event(
-                    &mut components.win,
-                    &mut components.wgpu,
-                    &components.state,
-                    &components.debug,
-                );
+                Simula::handle_redraw_event(components);
             }
             WindowEvent::CursorMoved { position, .. } => {
                 components.win.cursor_position = Some(position);

@@ -2,15 +2,12 @@ use crate::rendering::*;
 use crate::widgets::textured_widget::TexturedWidget;
 use iced::*;
 use iced_wgpu::Renderer;
-use iced_widget::{column, container, container::*, row, shader, slider, text, text_input};
-use iced_winit::core::{Color, Element, Length::*, Theme};
+use iced_widget::{column, container, row, shader, text, text_input};
+use iced_winit::core::{Color, Element, Theme};
 use iced_winit::runtime::{Program, Task};
 
-//////////////////////////////////////////////////////////////////////
-use iced::border::Radius;
-use iced::{Application, Length, Settings, executor};
 use std::path::Path;
-use widget::{button, combo_box, pick_list};
+use widget::{button, pick_list};
 
 use rfd::FileDialog;
 
