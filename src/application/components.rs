@@ -26,12 +26,12 @@ impl Components {
         let background_renderer = BackgroundRenderer::new(&wgpu, &win.viewport, data_handle, shared_context.clone());
         let mut debug = Debug::new();
         let state = program::State::new(
-            Controls::new(background_renderer.get_texture_handle()),
+            Controls::new(background_renderer.get_texture_handle(), event_proxy.clone()),
             win.viewport.logical_size(),
             &mut wgpu.renderer,
             &mut debug,
         );
-        algorithm_processor.start(shared_context.clone());
+
         Self {
             win,
             wgpu,

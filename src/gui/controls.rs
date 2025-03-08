@@ -10,6 +10,8 @@ use std::path::Path;
 use widget::{button, pick_list};
 
 use rfd::FileDialog;
+use crate::application::CustomEventProxy;
+use crate::application::CustomEvent;
 
 const INVALIDINPUTCOLOR: Color = Color {
     r: 1.0,
@@ -23,6 +25,7 @@ pub struct Controls {
     available_algorithms: Vec<String>,
     selected_algorithm: Option<String>,
     output_path: String,
+    custom_event_proxy: CustomEventProxy
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +37,7 @@ pub enum Message {
 }
 
 impl Controls {
-    pub fn new(texture: TextureHandle) -> Controls {
+    pub fn new(texture: TextureHandle, custom_event_proxy: CustomEventProxy) -> Controls {
         let options = vec!["None".to_owned(), "Simple".to_owned()];
         let selection = options.first().cloned();
         Controls {
@@ -42,6 +45,7 @@ impl Controls {
             available_algorithms: options,
             selected_algorithm: selection,
             output_path: "".to_owned(),
+            custom_event_proxy
         }
     }
 
@@ -71,7 +75,9 @@ impl Program for Controls {
                 }
             }
             Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
-            Message::StartStop => {}
+            Message::StartStop => {
+                self.custom_event_proxy.send_event(CustomEvent::StartStop);
+            }
         }
 
         Task::none()

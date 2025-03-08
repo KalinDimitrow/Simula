@@ -12,6 +12,7 @@ use winit::event::WindowEvent;
 #[derive(Debug)]
 pub enum CustomEvent {
     RequestRedraw,
+    StartStop,
 }
 
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
@@ -128,8 +129,6 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             return;
         };
 
-        components.background_renderer.render(&mut components.wgpu);
-
         match event {
             WindowEvent::RedrawRequested => {
                 Simula::handle_redraw_event(components);
@@ -189,7 +188,11 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
 
         match event {
             CustomEvent::RequestRedraw => {
+                components.background_renderer.render(&mut components.wgpu);
                 components.win.window.request_redraw();
+            }
+            CustomEvent::StartStop => {
+                components.algorithm_processor.start(components.shared_context.clone());
             }
         }
     }
