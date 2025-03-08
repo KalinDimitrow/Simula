@@ -22,11 +22,26 @@ const INVALID_INPUT_COLOR: Color = Color {
     a: 1.0,
 };
 
+const START_BUTTON: Color = Color {
+    r: 0.0,
+    b: 0.0,
+    g: 1.0,
+    a: 1.0,
+};
+
+const STOP_BUTTON: Color = Color {
+    r: 1.0,
+    b: 0.0,
+    g: 0.0,
+    a: 1.0,
+};
+
 pub struct Controls {
     texture: TexturedWidget,
     available_algorithms: Vec<String>,
     selected_algorithm: Option<String>,
     output_path: String,
+    button_state: bool,
     custom_event_proxy: CustomEventProxy
 }
 
@@ -35,7 +50,7 @@ pub enum Message {
     InputChanged(String),
     PickDirectory,
     ManualDirectoryEntry(String),
-    StartStop,
+    StartStop(bool),
 }
 
 impl Controls {
@@ -47,6 +62,7 @@ impl Controls {
             available_algorithms: options,
             selected_algorithm: selection,
             output_path: "".to_owned(),
+            button_state: false,
             custom_event_proxy
         }
     }
@@ -60,6 +76,17 @@ impl Controls {
         style
     }
 
+    fn start_stop_button(&self) -> button::Button<Message,Theme,Renderer> {
+        if self.button_state {
+            button("Stop").on_press(Message::StartStop(self.button_state)).style(|_, _| {
+                button::Style{background: Some(Background::from(STOP_BUTTON)),..Default::default()}
+            })
+        } else {
+            button("Start").on_press(Message::StartStop(self.button_state)).style(|_, _| {
+                button::Style{background: Some(Background::from(START_BUTTON)),..Default::default()}})
+        }
+    }
+
     fn static_interface(&self) -> ContainerType {
         container(column![
             text("Select algorithm").color(Color::WHITE),
@@ -69,7 +96,7 @@ impl Controls {
                 |input| { Message::InputChanged(input) }
             ),
             row![button("Pick output directory").on_press(Message::PickDirectory),
-            button("Start").on_press(Message::StartStop)].spacing(5),
+            self.start_stop_button()].spacing(5),
                         text_input("Path to output direcotry", &self.output_path)
                 .on_input(Message::ManualDirectoryEntry)
                 .style(|theme, status| self.valid_path_style(theme, status)),
@@ -110,8 +137,9 @@ impl Program for Controls {
                 }
             }
             Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
-            Message::StartStop => {
-                let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop);
+            Message::StartStop(value) => {
+                self.button_state = !value;
+                let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop(value));
             }
         }
 

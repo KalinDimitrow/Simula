@@ -12,7 +12,7 @@ use winit::event::WindowEvent;
 #[derive(Debug)]
 pub enum CustomEvent {
     RequestRedraw,
-    StartStop,
+    StartStop(bool),
 }
 
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
@@ -178,7 +178,6 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     }
 
     fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: CustomEvent) {
-        #[allow(unused_variables)]
         let Self::Ready {
             components
         } = self
@@ -191,8 +190,13 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 components.background_renderer.render(&mut components.wgpu);
                 components.win.window.request_redraw();
             }
-            CustomEvent::StartStop => {
-                components.algorithm_processor.start(components.shared_context.clone());
+            CustomEvent::StartStop(value) => {
+                if value {
+                    components.algorithm_processor.shutdown();
+                }
+                else {
+                    components.algorithm_processor.start(components.shared_context.clone());
+                }
             }
         }
     }
