@@ -13,7 +13,9 @@ use rfd::FileDialog;
 use crate::application::CustomEventProxy;
 use crate::application::CustomEvent;
 
-const INVALIDINPUTCOLOR: Color = Color {
+type ContainerType<'a> = container::Container<'a, Message, Theme, Renderer>;
+
+const INVALID_INPUT_COLOR: Color = Color {
     r: 1.0,
     b: 0.0,
     g: 0.0,
@@ -52,10 +54,43 @@ impl Controls {
     fn valid_path_style(&self, theme: &Theme, status: text_input::Status) -> text_input::Style {
         let mut style = text_input::default(theme, status);
         if !Path::new(&self.output_path).is_dir() {
-            style.value = INVALIDINPUTCOLOR;
+            style.value = INVALID_INPUT_COLOR;
         }
 
         style
+    }
+
+    fn static_interface(&self) -> ContainerType {
+        container(column![
+            text("Select algorithm").color(Color::WHITE),
+            pick_list(
+                self.available_algorithms.as_slice(),
+                self.selected_algorithm.clone(),
+                |input| { Message::InputChanged(input) }
+            ),
+            row![button("Pick output directory").on_press(Message::PickDirectory),
+            button("Start").on_press(Message::StartStop)].spacing(5),
+                        text_input("Path to output direcotry", &self.output_path)
+                .on_input(Message::ManualDirectoryEntry)
+                .style(|theme, status| self.valid_path_style(theme, status)),
+        ].spacing(5)).padding(5)
+            .style(|_| container::Style {
+                border: border::rounded(10).color(Color::WHITE).width(2),
+                ..Default::default()
+            })
+            .width(Fill)
+            .height(FillPortion(3))
+    }
+
+    fn dynamic_interface(&self) -> ContainerType {
+        let c1 = column![];
+        container(column![c1])
+            .style(|_| container::Style {
+                border: border::rounded(10).color(Color::WHITE).width(2),
+                ..Default::default()
+            })
+            .width(Fill)
+            .height(FillPortion(7))
     }
 }
 
@@ -76,7 +111,7 @@ impl Program for Controls {
             }
             Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
             Message::StartStop => {
-                self.custom_event_proxy.send_event(CustomEvent::StartStop);
+                let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop);
             }
         }
 
@@ -84,43 +119,11 @@ impl Program for Controls {
     }
 
     fn view(&self) -> Element<Message, Theme, Renderer> {
-        let c1 = column![];
-
-        let static_interface = container(column![
-            text("Select algorithm").color(Color::WHITE),
-            pick_list(
-                self.available_algorithms.as_slice(),
-                self.selected_algorithm.clone(),
-                |input| { Message::InputChanged(input) }
-            ),
-            button("Pick output directory").on_press(Message::PickDirectory),
-            text_input("Path to output direcotry", &self.output_path)
-                .on_input(Message::ManualDirectoryEntry)
-                .style(|theme, status| self.valid_path_style(theme, status)),
-            button("Start").on_press(Message::StartStop)
-        ])
-        .style(|_| container::Style {
-            border: border::rounded(10).color(Color::WHITE).width(2),
-            ..Default::default()
-        })
-        .width(Fill)
-        .height(FillPortion(3))
-        .padding(10);
-        let dynamic_interface = container(column![c1])
-            .style(|_| container::Style {
-                border: border::rounded(10).color(Color::WHITE).width(2),
-                ..Default::default()
-            })
-            .width(Fill)
-            .height(FillPortion(7))
-            .padding(10);
-
         let interactive_interface =
-            container(column![static_interface, dynamic_interface].spacing(10))
-                .padding(10)
+            container(column![self.static_interface(), self.dynamic_interface()].spacing(10))
                 .width(FillPortion(1));
 
-        let display_interface = container(shader(&self.texture).width(Fill).height(Fill))
+        let display_interface = container(column![shader(&self.texture).width(Fill).height(Fill)].padding(5))
             .style(|_| container::Style {
                 border: border::rounded(10).color(Color::WHITE).width(2),
                 ..Default::default()
@@ -128,8 +131,8 @@ impl Program for Controls {
             .width(FillPortion(7))
             .height(Fill);
 
-        container(row![interactive_interface, display_interface,].spacing(10))
-            .padding(10)
+        container(row![interactive_interface, display_interface,].spacing(5))
+            .padding(5)
             .width(Fill)
             .height(Fill)
             .into()
