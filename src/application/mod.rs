@@ -8,11 +8,13 @@ use winit::event_loop::EventLoopProxy;
 use self::components::Components;
 
 use winit::event::WindowEvent;
+use crate::gui::controls::Message;
 
 #[derive(Debug)]
 pub enum CustomEvent {
     RequestRedraw,
     StartStop(bool),
+    UpdateSharedData,
 }
 
 pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
@@ -197,6 +199,9 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 else {
                     components.algorithm_processor.start(components.shared_context.clone());
                 }
+            }
+            CustomEvent::UpdateSharedData => {
+                components.state.queue_message(Message::UpdateSharedData(components.shared_context.clone()));
             }
         }
     }

@@ -21,8 +21,8 @@ impl Components {
     pub fn new(event_proxy: CustomEventProxy, event_loop: &winit::event_loop::ActiveEventLoop) -> Self {
         let win = WininitWrapper::new(event_loop);
         let mut wgpu = WGPUWrapper::new(win.window.clone());
-        let (data_handle, algorithm_processor) = AlgorithmProcessor::new(event_proxy.clone());
-        let shared_context = SharedContext::new((300, 300));
+        let shared_context = SharedContext::new(event_proxy.clone(), (300, 300));
+        let (data_handle, algorithm_processor) = AlgorithmProcessor::new(shared_context.clone());
         let background_renderer = BackgroundRenderer::new(&wgpu, &win.viewport, data_handle, shared_context.clone());
         let mut debug = Debug::new();
         let state = program::State::new(

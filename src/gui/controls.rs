@@ -12,6 +12,7 @@ use widget::{button, pick_list};
 use rfd::FileDialog;
 use crate::application::CustomEventProxy;
 use crate::application::CustomEvent;
+use crate::application::SharedContext;
 
 type ContainerType<'a> = container::Container<'a, Message, Theme, Renderer>;
 
@@ -51,6 +52,7 @@ pub enum Message {
     PickDirectory,
     ManualDirectoryEntry(String),
     StartStop(bool),
+    UpdateSharedData(SharedContext),
 }
 
 impl Controls {
@@ -138,8 +140,11 @@ impl Program for Controls {
             }
             Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
             Message::StartStop(value) => {
-                self.button_state = !value;
                 let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop(value));
+            }
+            Message::UpdateSharedData(ctx) => {
+                let ctx = ctx.lock();
+                self.button_state = ctx.algorithm_started;
             }
         }
 

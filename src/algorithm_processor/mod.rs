@@ -21,10 +21,11 @@ pub struct AlgorithmProcessor {
     ctx: Option<WorkerContext>,
     worker: Option<thread::JoinHandle<WorkerContext>>,
     worker_controller: Sender<ThreadControlMessage>,
+    shared_ctx: SharedContext,
 }
 
 impl AlgorithmProcessor {
-    pub fn new(event_proxy: CustomEventProxy) -> (ProcessedDataHandle, Self) {
+    pub fn new(shared_ctx: SharedContext) -> (ProcessedDataHandle, Self) {
         let (sender, receiver): (Sender<Data>, ProcessedDataHandle) = unbounded();
         let (worker_controller, controller_listener): (
             Sender<ThreadControlMessage>,
@@ -37,10 +38,11 @@ impl AlgorithmProcessor {
                 ctx: Some(WorkerContext {
                     controller_listener,
                     sender,
-                    event_proxy,
+                    event_proxy: shared_ctx.clone().lock().event_proxy.clone(),
                 }),
                 worker_controller,
                 worker: None,
+                shared_ctx
             },
         )
     }
@@ -54,6 +56,7 @@ impl AlgorithmProcessor {
             .ctx
             .take()
             .expect("There is serious bug the threading code in algorithm processor");
+        ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         self.worker = Some(thread::spawn(move || {
             let mut count: u64 = 0;
             let latice_dimentions = { shared_ctx.lock().lattice_dimension };
@@ -78,6 +81,12 @@ impl AlgorithmProcessor {
             }
             ctx
         }));
+
+        {
+            let mut ctx = self.shared_ctx.lock();
+            ctx.algorithm_started = true;
+            ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
+        }
     }
 
     pub fn shutdown(&mut self) {
@@ -88,6 +97,13 @@ impl AlgorithmProcessor {
         if let Some(handle) = self.worker.take() {
             self.ctx = Some(handle.join().unwrap());
         }
+
+        {
+            let mut ctx = self.shared_ctx.lock();
+            ctx.algorithm_started = false;
+            ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
+        }
+        
     }
 }
 
