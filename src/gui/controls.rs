@@ -37,12 +37,23 @@ const STOP_BUTTON: Color = Color {
     a: 1.0,
 };
 
+const DISABLED_BUTTON: Color = Color {
+    r: 0.8,
+    b: 0.8,
+    g: 0.8,
+    a: 1.0,
+};
+
+const DEFAULT_LATTICE_SIZE: usize = 200;
+
 pub struct Controls {
     texture: TexturedWidget,
     available_algorithms: Vec<String>,
     selected_algorithm: Option<String>,
     output_path: String,
     button_state: bool,
+    dimentions: Option<usize>,
+    dimentions_raw: String,
     custom_event_proxy: CustomEventProxy
 }
 
@@ -51,6 +62,7 @@ pub enum Message {
     InputChanged(String),
     PickDirectory,
     ManualDirectoryEntry(String),
+    DimentionsChanged(String),
     StartStop(bool),
     UpdateSharedData(SharedContext),
 }
@@ -65,6 +77,8 @@ impl Controls {
             selected_algorithm: selection,
             output_path: "".to_owned(),
             button_state: false,
+            dimentions_raw: DEFAULT_LATTICE_SIZE.to_string(),
+            dimentions: Some(DEFAULT_LATTICE_SIZE),
             custom_event_proxy
         }
     }
@@ -78,14 +92,32 @@ impl Controls {
         style
     }
 
+    fn valid_dimentions(&self, theme: &Theme, status: text_input::Status) -> text_input::Style {
+        let mut style = text_input::default(theme, status);
+        if let Err(_) = self.dimentions_raw.parse::<usize>() {
+            style.value = INVALID_INPUT_COLOR;
+        }
+
+        style
+    }
+
     fn start_stop_button(&self) -> button::Button<Message,Theme,Renderer> {
         if self.button_state {
             button("Stop").on_press(Message::StartStop(self.button_state)).style(|_, _| {
                 button::Style{background: Some(Background::from(STOP_BUTTON)),..Default::default()}
             })
         } else {
-            button("Start").on_press(Message::StartStop(self.button_state)).style(|_, _| {
-                button::Style{background: Some(Background::from(START_BUTTON)),..Default::default()}})
+            match self.dimentions {
+                Some(_) => {
+                    button("Start").on_press(Message::StartStop(self.button_state)).style(|_, _| {
+                        button::Style{background: Some(Background::from(START_BUTTON)),..Default::default()}})
+                },
+                None => {
+                    button("Start").style(|_, _| {
+                        button::Style{background: Some(Background::from(DISABLED_BUTTON)),..Default::default()}})
+                }
+            }
+
         }
     }
 
@@ -112,8 +144,10 @@ impl Controls {
     }
 
     fn dynamic_interface(&self) -> ContainerType {
-        let c1 = column![];
-        container(column![c1])
+        let dimentions = column![text_input(self.dimentions_raw.as_str(), &self.dimentions_raw)
+            .on_input(Message::DimentionsChanged)
+            .style(|theme, status| self.valid_dimentions(theme, status))];
+        container(column![dimentions])
             .style(|_| container::Style {
                 border: border::rounded(10).color(Color::WHITE).width(2),
                 ..Default::default()
@@ -138,9 +172,20 @@ impl Program for Controls {
                     self.output_path = path.display().to_string();
                 }
             }
-            Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
+            Message::ManualDirectoryEntry(new_path) => {self.output_path = new_path},
+            Message::DimentionsChanged(new_dimentions) => {
+                self.dimentions_raw = new_dimentions;
+                match self.dimentions_raw.parse::<usize>() {
+                    Ok(value) => {
+                        self.dimentions = Some(value);
+                    },
+                    Err(_) => {self.dimentions = None},
+                }
+            }
             Message::StartStop(value) => {
-                let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop(value));
+                if let Some(dimentions) = & self.dimentions {
+                    let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop(value, dimentions.clone()));
+                }
             }
             Message::UpdateSharedData(ctx) => {
                 let ctx = ctx.lock();

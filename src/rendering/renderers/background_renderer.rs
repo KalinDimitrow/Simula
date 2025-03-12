@@ -76,4 +76,7 @@ impl BackgroundRenderer {
     pub fn get_texture_handle(&self) -> TextureHandle {
         self.texture.clone()
     }
+    pub fn resize_latice(&mut self, wgpu: &WGPUWrapper, lattice_dimensions: (usize, usize)) {
+        self.scene = Scene::new(wgpu, lattice_dimensions);
+    }
 }

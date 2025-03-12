@@ -13,7 +13,7 @@ use crate::gui::controls::Message;
 #[derive(Debug)]
 pub enum CustomEvent {
     RequestRedraw,
-    StartStop(bool),
+    StartStop(bool, usize),
     UpdateSharedData,
 }
 
@@ -192,11 +192,16 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 components.background_renderer.render(&mut components.wgpu);
                 components.win.window.request_redraw();
             }
-            CustomEvent::StartStop(value) => {
+            CustomEvent::StartStop(value, dimention) => {
                 if value {
                     components.algorithm_processor.shutdown();
                 }
                 else {
+                    {
+                        let mut ctx = components.shared_context.lock();
+                        ctx.lattice_dimension = (dimention, dimention);
+                    }
+                    components.background_renderer.resize_latice(&mut components.wgpu, (dimention, dimention));
                     components.algorithm_processor.start(components.shared_context.clone());
                 }
             }
