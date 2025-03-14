@@ -1,5 +1,7 @@
 pub use crate::rendering::liquid_crystal_latice::*;
 pub use crate::rendering::vertex::*;
+pub use crate::rendering::wgpu_wrapper::*;
+pub use crate::rendering::image_writer::* ;
 pub use iced::mouse;
 pub use iced::widget::shader::{self, Viewport};
 pub use iced::{Rectangle, Size};
@@ -20,6 +22,7 @@ pub mod liquid_crystal_latice;
 pub mod renderers;
 pub mod vertex;
 pub mod wgpu_wrapper;
+mod image_writer;
 
 use std::sync::{Arc, Mutex};
 

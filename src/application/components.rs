@@ -5,6 +5,7 @@ use crate::rendering::renderers::BackgroundRenderer;
 use crate::application::wininit_wrapper::WininitWrapper;
 use crate::rendering::wgpu_wrapper::WGPUWrapper;
 use crate::gui::controls::Controls;
+use crate::rendering::ImageWriter;
 
 pub struct Components {
     pub win: WininitWrapper,
@@ -13,6 +14,7 @@ pub struct Components {
     pub algorithm_processor: AlgorithmProcessor,
     pub background_renderer: BackgroundRenderer,
     pub state: program::State<Controls>,
+    pub image_writer: ImageWriter,
     pub event_proxy: CustomEventProxy,
     pub debug: Debug
 }
@@ -32,6 +34,8 @@ impl Components {
             &mut debug,
         );
 
+        let image_writer = ImageWriter::new(&wgpu);
+
         Self {
             win,
             wgpu,
@@ -39,6 +43,7 @@ impl Components {
             algorithm_processor,
             background_renderer,
             state,
+            image_writer,
             event_proxy,
             debug
         }
