@@ -34,7 +34,7 @@ impl Components {
             &mut debug,
         );
 
-        let image_writer = ImageWriter::new(&wgpu);
+        let image_writer = ImageWriter::new(&wgpu, 5);
 
         Self {
             win,
