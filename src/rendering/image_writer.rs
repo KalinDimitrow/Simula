@@ -1,6 +1,6 @@
 use crate::rendering::*;
-use rav1e::prelude::*;
 use rav1e::config::SpeedSettings;
+use rav1e::prelude::*;
 use std::fs::File;
 use std::io::Write;
 
@@ -29,8 +29,12 @@ impl ImageWriter {
 
     fn write_ivf_packet<W: Write>(writer: &mut W, pkt: &Packet<u8>) {
         // packet size 12
-        writer.write_all(&(pkt.data.len() as u32).to_le_bytes()).unwrap();
-        writer.write_all(&(pkt.input_frameno as u64).to_le_bytes()).unwrap();
+        writer
+            .write_all(&(pkt.data.len() as u32).to_le_bytes())
+            .unwrap();
+        writer
+            .write_all(&(pkt.input_frameno as u64).to_le_bytes())
+            .unwrap();
         writer.write_all(&pkt.data).unwrap();
     }
 
@@ -62,12 +66,11 @@ impl ImageWriter {
     }
 
     pub fn new(wgpu: &WGPUWrapper, frames_count: usize) -> Self {
-
         let enc = EncoderConfig {
             width: 640,
             height: 480,
             speed_settings: SpeedSettings::from_preset(3),
-            time_base: Rational {num: 1, den: 30},
+            time_base: Rational { num: 1, den: 30 },
             chroma_sampling: ChromaSampling::Cs420,
             ..Default::default()
         };
@@ -75,9 +78,6 @@ impl ImageWriter {
         let cfg = Config::new().with_encoder_config(enc.clone());
 
         let mut ctx: Context<u8> = cfg.new_context().unwrap();
-
-
-
 
         let limit = 30;
 
@@ -95,7 +95,8 @@ impl ImageWriter {
                 }
             }
 
-            let (y_plane, u_plane, v_plane) = ImageWriter::rgb_to_yuv420(enc.width as usize, enc.height as usize, &rgb_pixels);
+            let (y_plane, u_plane, v_plane) =
+                ImageWriter::rgb_to_yuv420(enc.width as usize, enc.height as usize, &rgb_pixels);
 
             f.planes[0].copy_from_raw_u8(&y_plane, enc.width, 1);
             f.planes[1].copy_from_raw_u8(&u_plane, enc.width / 2, 1);
@@ -116,7 +117,6 @@ impl ImageWriter {
         ctx.flush();
         let mut file = File::create("output.ivf").unwrap();
         ImageWriter::write_ivf_header(&mut file, &enc, limit as u64);
-
 
         // Test that we cleanly exit once we hit the limit
         let mut i = 0;
@@ -141,14 +141,16 @@ impl ImageWriter {
             }
         }
         file.flush().unwrap();
-     Self {
-        ctx,
-        frames_count,
-     }
+        Self { ctx, frames_count }
     }
 
-    pub fn write_image(&self, wgpu: &WGPUWrapper, texture: &wgpu::Texture, dimensions: (u32, u32)) -> Vec<u8> {
-        let  device = &wgpu.device;
+    pub fn write_image(
+        &self,
+        wgpu: &WGPUWrapper,
+        texture: &wgpu::Texture,
+        dimensions: (u32, u32),
+    ) -> Vec<u8> {
+        let device = &wgpu.device;
         let queue = &wgpu.queue;
         let buffer_size = (dimensions.0 * dimensions.1 * 4) as wgpu::BufferAddress;
 

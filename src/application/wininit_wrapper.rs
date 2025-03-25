@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use iced_winit::Clipboard;
-use crate::rendering::{winit, Size, Viewport};
 use crate::rendering::winit::event_loop::ControlFlow;
 use crate::rendering::winit::keyboard::ModifiersState;
+use crate::rendering::{Size, Viewport, winit};
+use iced_winit::Clipboard;
+use std::sync::Arc;
 
 pub struct WininitWrapper {
     pub window: Arc<winit::window::Window>,

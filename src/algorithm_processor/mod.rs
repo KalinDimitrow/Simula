@@ -42,7 +42,7 @@ impl AlgorithmProcessor {
                 }),
                 worker_controller,
                 worker: None,
-                shared_ctx
+                shared_ctx,
             },
         )
     }
@@ -103,7 +103,6 @@ impl AlgorithmProcessor {
             ctx.algorithm_started = false;
             ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         }
-        
     }
 }
 

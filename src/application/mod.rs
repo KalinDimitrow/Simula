@@ -1,14 +1,14 @@
+mod components;
 mod shared_context;
 mod wininit_wrapper;
-mod components;
 
-pub use shared_context::*;
-use crate::rendering::*;
-use winit::event_loop::EventLoopProxy;
 use self::components::Components;
+use crate::rendering::*;
+pub use shared_context::*;
+use winit::event_loop::EventLoopProxy;
 
-use winit::event::WindowEvent;
 use crate::gui::controls::Message;
+use winit::event::WindowEvent;
 
 #[derive(Debug)]
 pub enum CustomEvent {
@@ -22,9 +22,7 @@ pub type CustomEventProxy = EventLoopProxy<CustomEvent>;
 #[allow(clippy::large_enum_variant)]
 pub enum Simula {
     Loading(CustomEventProxy),
-    Ready {
-        components: Components,
-    },
+    Ready { components: Components },
 }
 
 impl Simula {
@@ -32,11 +30,11 @@ impl Simula {
         Self::Loading(event_proxy)
     }
 
-    fn render(
-        frame: SurfaceTexture,
-        components: &mut Components
-    ) {
-        let mut encoder = components.wgpu.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+    fn render(frame: SurfaceTexture, components: &mut Components) {
+        let mut encoder = components
+            .wgpu
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor { label: None });
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
 
         components.wgpu.renderer.present(
@@ -52,18 +50,22 @@ impl Simula {
         );
 
         // Then we submit the work
-        components.wgpu.engine.submit(&components.wgpu.queue, encoder);
+        components
+            .wgpu
+            .engine
+            .submit(&components.wgpu.queue, encoder);
         frame.present();
 
         // Update the mouse cursor
-        components.win.window.set_cursor(conversion::mouse_interaction(
-            components.state.mouse_interaction(),
-        ));
+        components
+            .win
+            .window
+            .set_cursor(conversion::mouse_interaction(
+                components.state.mouse_interaction(),
+            ));
     }
 
-    fn handle_redraw_event(
-        components: &mut Components
-    ) {
+    fn handle_redraw_event(components: &mut Components) {
         if components.win.resized {
             let size = components.win.window.inner_size();
 
@@ -91,9 +93,7 @@ impl Simula {
 
         match components.wgpu.surface.get_current_texture() {
             Ok(frame) => {
-                Simula::render(
-                    frame, components,
-                );
+                Simula::render(frame, components);
             }
             Err(error) => match error {
                 SurfaceError::OutOfMemory => {
@@ -114,7 +114,9 @@ impl Simula {
 impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let Self::Loading(event_proxy) = self {
-            *self =  Self::Ready {components: Components::new(event_proxy.clone(), event_loop)}
+            *self = Self::Ready {
+                components: Components::new(event_proxy.clone(), event_loop),
+            }
         }
     }
 
@@ -124,10 +126,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
-        let Self::Ready {
-            components
-        } = self
-        else {
+        let Self::Ready { components } = self else {
             return;
         };
 
@@ -151,9 +150,11 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
         }
 
         // Map window event to iced event
-        if let Some(event) =
-            conversion::window_event(event, components.win.window.scale_factor(), components.win.modifiers)
-        {
+        if let Some(event) = conversion::window_event(
+            event,
+            components.win.window.scale_factor(),
+            components.win.modifiers,
+        ) {
             components.state.queue_event(event);
         }
 
@@ -162,7 +163,9 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             // We update iced
             let _ = components.state.update(
                 components.win.viewport.logical_size(),
-                components.win.cursor_position
+                components
+                    .win
+                    .cursor_position
                     .map(|p| conversion::cursor_position(p, components.win.viewport.scale_factor()))
                     .map(mouse::Cursor::Available)
                     .unwrap_or(mouse::Cursor::Unavailable),
@@ -180,10 +183,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
     }
 
     fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: CustomEvent) {
-        let Self::Ready {
-            components
-        } = self
-        else {
+        let Self::Ready { components } = self else {
             return;
         };
 
@@ -195,18 +195,23 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
             CustomEvent::StartStop(value, dimention) => {
                 if value {
                     components.algorithm_processor.shutdown();
-                }
-                else {
+                } else {
                     {
                         let mut ctx = components.shared_context.lock();
                         ctx.lattice_dimension = (dimention, dimention);
                     }
-                    components.background_renderer.resize_latice(&mut components.wgpu, (dimention, dimention));
-                    components.algorithm_processor.start(components.shared_context.clone());
+                    components
+                        .background_renderer
+                        .resize_latice(&mut components.wgpu, (dimention, dimention));
+                    components
+                        .algorithm_processor
+                        .start(components.shared_context.clone());
                 }
             }
             CustomEvent::UpdateSharedData => {
-                components.state.queue_message(Message::UpdateSharedData(components.shared_context.clone()));
+                components
+                    .state
+                    .queue_message(Message::UpdateSharedData(components.shared_context.clone()));
             }
         }
     }

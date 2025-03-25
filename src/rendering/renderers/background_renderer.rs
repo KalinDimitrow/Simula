@@ -1,7 +1,7 @@
 use crate::algorithm_processor::*;
 use crate::application::SharedContext;
-use crate::rendering::*;
 use crate::rendering::wgpu_wrapper::WGPUWrapper;
+use crate::rendering::*;
 
 pub struct BackgroundRenderer {
     pub texture: TextureHandle,
@@ -48,7 +48,9 @@ impl BackgroundRenderer {
     }
 
     pub fn render(&self, wgpu: &mut WGPUWrapper) {
-        let mut encoder = wgpu.device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+        let mut encoder = wgpu
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor { label: None });
         let mut job_done = false;
         for datum in self.data_handle.try_iter() {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {

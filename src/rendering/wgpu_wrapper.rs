@@ -1,7 +1,7 @@
-use std::sync::Arc;
-pub use iced_wgpu::*;
-use crate::rendering::*;
 use crate::rendering::wgpu_wrapper::graphics::Antialiasing;
+use crate::rendering::*;
+pub use iced_wgpu::*;
+use std::sync::Arc;
 
 #[allow(unused_variables)]
 pub struct WGPUWrapper {

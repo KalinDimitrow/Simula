@@ -15,7 +15,7 @@ pub(super) mod internal {
 
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct SharedContext(Arc<Mutex<internal::SharedContext>>);
 
 impl SharedContext {

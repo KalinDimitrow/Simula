@@ -9,10 +9,10 @@ use iced_winit::runtime::{Program, Task};
 use std::path::Path;
 use widget::{button, pick_list};
 
-use rfd::FileDialog;
-use crate::application::CustomEventProxy;
 use crate::application::CustomEvent;
+use crate::application::CustomEventProxy;
 use crate::application::SharedContext;
+use rfd::FileDialog;
 
 type ContainerType<'a> = container::Container<'a, Message, Theme, Renderer>;
 
@@ -54,7 +54,7 @@ pub struct Controls {
     button_state: bool,
     dimentions: Option<usize>,
     dimentions_raw: String,
-    custom_event_proxy: CustomEventProxy
+    custom_event_proxy: CustomEventProxy,
 }
 
 #[derive(Debug, Clone)]
@@ -79,7 +79,7 @@ impl Controls {
             button_state: false,
             dimentions_raw: DEFAULT_LATTICE_SIZE.to_string(),
             dimentions: Some(DEFAULT_LATTICE_SIZE),
-            custom_event_proxy
+            custom_event_proxy,
         }
     }
 
@@ -101,52 +101,65 @@ impl Controls {
         style
     }
 
-    fn start_stop_button(&self) -> button::Button<Message,Theme,Renderer> {
+    fn start_stop_button(&self) -> button::Button<Message, Theme, Renderer> {
         if self.button_state {
-            button("Stop").on_press(Message::StartStop(self.button_state)).style(|_, _| {
-                button::Style{background: Some(Background::from(STOP_BUTTON)),..Default::default()}
-            })
+            button("Stop")
+                .on_press(Message::StartStop(self.button_state))
+                .style(|_, _| button::Style {
+                    background: Some(Background::from(STOP_BUTTON)),
+                    ..Default::default()
+                })
         } else {
             match self.dimentions {
-                Some(_) => {
-                    button("Start").on_press(Message::StartStop(self.button_state)).style(|_, _| {
-                        button::Style{background: Some(Background::from(START_BUTTON)),..Default::default()}})
-                },
-                None => {
-                    button("Start").style(|_, _| {
-                        button::Style{background: Some(Background::from(DISABLED_BUTTON)),..Default::default()}})
-                }
+                Some(_) => button("Start")
+                    .on_press(Message::StartStop(self.button_state))
+                    .style(|_, _| button::Style {
+                        background: Some(Background::from(START_BUTTON)),
+                        ..Default::default()
+                    }),
+                None => button("Start").style(|_, _| button::Style {
+                    background: Some(Background::from(DISABLED_BUTTON)),
+                    ..Default::default()
+                }),
             }
-
         }
     }
 
     fn static_interface(&self) -> ContainerType {
-        container(column![
-            text("Select algorithm").color(Color::WHITE),
-            pick_list(
-                self.available_algorithms.as_slice(),
-                self.selected_algorithm.clone(),
-                |input| { Message::InputChanged(input) }
-            ),
-            row![button("Pick output directory").on_press(Message::PickDirectory),
-            self.start_stop_button()].spacing(5),
-                        text_input("Path to output direcotry", &self.output_path)
-                .on_input(Message::ManualDirectoryEntry)
-                .style(|theme, status| self.valid_path_style(theme, status)),
-        ].spacing(5)).padding(5)
-            .style(|_| container::Style {
-                border: border::rounded(10).color(Color::WHITE).width(2),
-                ..Default::default()
-            })
-            .width(Fill)
-            .height(FillPortion(3))
+        container(
+            column![
+                text("Select algorithm").color(Color::WHITE),
+                pick_list(
+                    self.available_algorithms.as_slice(),
+                    self.selected_algorithm.clone(),
+                    |input| { Message::InputChanged(input) }
+                ),
+                row![
+                    button("Pick output directory").on_press(Message::PickDirectory),
+                    self.start_stop_button()
+                ]
+                .spacing(5),
+                text_input("Path to output direcotry", &self.output_path)
+                    .on_input(Message::ManualDirectoryEntry)
+                    .style(|theme, status| self.valid_path_style(theme, status)),
+            ]
+            .spacing(5),
+        )
+        .padding(5)
+        .style(|_| container::Style {
+            border: border::rounded(10).color(Color::WHITE).width(2),
+            ..Default::default()
+        })
+        .width(Fill)
+        .height(FillPortion(3))
     }
 
     fn dynamic_interface(&self) -> ContainerType {
-        let dimentions = column![text_input(self.dimentions_raw.as_str(), &self.dimentions_raw)
-            .on_input(Message::DimentionsChanged)
-            .style(|theme, status| self.valid_dimentions(theme, status))];
+        let dimentions = column![
+            text_input(self.dimentions_raw.as_str(), &self.dimentions_raw)
+                .on_input(Message::DimentionsChanged)
+                .style(|theme, status| self.valid_dimentions(theme, status))
+        ];
         container(column![dimentions])
             .style(|_| container::Style {
                 border: border::rounded(10).color(Color::WHITE).width(2),
@@ -172,19 +185,21 @@ impl Program for Controls {
                     self.output_path = path.display().to_string();
                 }
             }
-            Message::ManualDirectoryEntry(new_path) => {self.output_path = new_path},
+            Message::ManualDirectoryEntry(new_path) => self.output_path = new_path,
             Message::DimentionsChanged(new_dimentions) => {
                 self.dimentions_raw = new_dimentions;
                 match self.dimentions_raw.parse::<usize>() {
                     Ok(value) => {
                         self.dimentions = Some(value);
-                    },
-                    Err(_) => {self.dimentions = None},
+                    }
+                    Err(_) => self.dimentions = None,
                 }
             }
             Message::StartStop(value) => {
-                if let Some(dimentions) = & self.dimentions {
-                    let _ = self.custom_event_proxy.send_event(CustomEvent::StartStop(value, dimentions.clone()));
+                if let Some(dimentions) = &self.dimentions {
+                    let _ = self
+                        .custom_event_proxy
+                        .send_event(CustomEvent::StartStop(value, dimentions.clone()));
                 }
             }
             Message::UpdateSharedData(ctx) => {
@@ -201,13 +216,14 @@ impl Program for Controls {
             container(column![self.static_interface(), self.dynamic_interface()].spacing(10))
                 .width(FillPortion(1));
 
-        let display_interface = container(column![shader(&self.texture).width(Fill).height(Fill)].padding(5))
-            .style(|_| container::Style {
-                border: border::rounded(10).color(Color::WHITE).width(2),
-                ..Default::default()
-            })
-            .width(FillPortion(7))
-            .height(Fill);
+        let display_interface =
+            container(column![shader(&self.texture).width(Fill).height(Fill)].padding(5))
+                .style(|_| container::Style {
+                    border: border::rounded(10).color(Color::WHITE).width(2),
+                    ..Default::default()
+                })
+                .width(FillPortion(7))
+                .height(Fill);
 
         container(row![interactive_interface, display_interface,].spacing(5))
             .padding(5)
