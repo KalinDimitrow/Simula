@@ -1,6 +1,6 @@
 use crate::algorithm_processor::*;
 use crate::application::wininit_wrapper::WininitWrapper;
-use crate::application::{CustomEventProxy, SharedContext};
+use crate::application::{CustomEventProxy, SharedContext, AlgorithmCatalog};
 use crate::gui::controls::Controls;
 use crate::rendering::ImageWriter;
 use crate::rendering::renderers::BackgroundRenderer;
@@ -16,6 +16,7 @@ pub struct Components {
     pub state: program::State<Controls>,
     pub image_writer: ImageWriter,
     pub event_proxy: CustomEventProxy,
+    pub algorithm_catalog: AlgorithmCatalog,
     pub debug: Debug,
 }
 
@@ -43,6 +44,8 @@ impl Components {
 
         let image_writer = ImageWriter::new(&wgpu, 5);
 
+        let algorithm_catalog = AlgorithmCatalog::new();
+
         Self {
             win,
             wgpu,
@@ -52,6 +55,7 @@ impl Components {
             state,
             image_writer,
             event_proxy,
+            algorithm_catalog,
             debug,
         }
     }

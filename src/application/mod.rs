@@ -1,10 +1,12 @@
 mod components;
 mod shared_context;
 mod wininit_wrapper;
+mod algorithm_catalog;
 
 use self::components::Components;
 use crate::rendering::*;
 pub use shared_context::*;
+pub use algorithm_catalog::AlgorithmCatalog;
 use winit::event_loop::EventLoopProxy;
 
 use crate::gui::controls::Message;
