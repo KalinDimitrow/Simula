@@ -143,15 +143,15 @@ impl Controls {
                     .on_input(Message::ManualDirectoryEntry)
                     .style(|theme, status| self.valid_path_style(theme, status)),
             ]
-            .spacing(5),
+                .spacing(5),
         )
-        .padding(5)
-        .style(|_| container::Style {
-            border: border::rounded(10).color(Color::WHITE).width(2),
-            ..Default::default()
-        })
-        .width(Fill)
-        .height(FillPortion(3))
+            .padding(5)
+            .style(|_| container::Style {
+                border: border::rounded(10).color(Color::WHITE).width(2),
+                ..Default::default()
+            })
+            .width(Fill)
+            .height(FillPortion(3))
     }
 
     fn dynamic_interface(&self) -> ContainerType {
@@ -204,7 +204,7 @@ impl Program for Controls {
             }
             Message::UpdateSharedData(ctx) => {
                 let ctx = ctx.lock();
-                self.button_state = ctx.algorithm_started;
+                self.button_state = ctx.general_params.read().unwrap().algorithm_started;
             }
         }
 

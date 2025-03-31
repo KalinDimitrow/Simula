@@ -198,7 +198,7 @@ impl winit::application::ApplicationHandler<CustomEvent> for Simula {
                 } else {
                     {
                         let mut ctx = components.shared_context.lock();
-                        ctx.lattice_dimension = (dimention, dimention);
+                        ctx.general_params.write().unwrap().lattice_dimension = (dimention, dimention);
                     }
                     components
                         .background_renderer

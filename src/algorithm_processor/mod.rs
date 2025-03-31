@@ -5,6 +5,8 @@ use crossbeam::channel::*;
 use rand::Rng;
 use std::thread;
 use std::time::Duration;
+pub use algorithm::*;
+pub mod algorithm;
 pub type Data = Vec<f32>;
 pub type ProcessedDataHandle = Receiver<Data>;
 pub enum ThreadControlMessage {
@@ -59,7 +61,7 @@ impl AlgorithmProcessor {
         ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         self.worker = Some(thread::spawn(move || {
             let mut count: u64 = 0;
-            let latice_dimentions = { shared_ctx.lock().lattice_dimension };
+            let latice_dimentions = { shared_ctx.lock().general_params.read().unwrap().lattice_dimension };
             let size = latice_dimentions.0 * latice_dimentions.1;
             let mut rng = rand::rng();
             let storage_data: Vec<f32> = (0..size).map(|_| rng.random_range(-1.0..1.0)).collect();
@@ -84,7 +86,7 @@ impl AlgorithmProcessor {
 
         {
             let mut ctx = self.shared_ctx.lock();
-            ctx.algorithm_started = true;
+            ctx.general_params.write().unwrap().algorithm_started = true;
             ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         }
     }
@@ -100,7 +102,7 @@ impl AlgorithmProcessor {
 
         {
             let mut ctx = self.shared_ctx.lock();
-            ctx.algorithm_started = false;
+            ctx.general_params.write().unwrap().algorithm_started = false;
             ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         }
     }

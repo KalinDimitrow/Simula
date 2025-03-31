@@ -17,7 +17,7 @@ impl BackgroundRenderer {
         data_handle: ProcessedDataHandle,
         shared_context: SharedContext,
     ) -> Self {
-        let lattice_dimensions = { shared_context.lock().lattice_dimension };
+        let lattice_dimensions = { shared_context.lock().general_params.read().unwrap().lattice_dimension };
         let scene = Scene::new(wgpu, lattice_dimensions);
         let texture_extent = Extent3d {
             width: viewport.physical_width(),

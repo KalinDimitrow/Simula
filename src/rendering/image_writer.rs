@@ -79,68 +79,68 @@ impl ImageWriter {
 
         let mut ctx: Context<u8> = cfg.new_context().unwrap();
 
-        let limit = 30;
-
-        for i in 0..limit {
-            println!("Sending frame {}", i);
-            let mut f = ctx.new_frame();
-
-            // Create a colored gradient image for testing
-            let mut rgb_pixels: Vec<u8> = Vec::with_capacity((enc.width * enc.height * 3) as usize);
-            for y in 0..enc.height {
-                for x in 0..enc.width {
-                    rgb_pixels.push(((x + i) % 256) as u8); // R
-                    rgb_pixels.push(((y + i) % 256) as u8); // G
-                    rgb_pixels.push(((x + y) % 256) as u8); // B
-                }
-            }
-
-            let (y_plane, u_plane, v_plane) =
-                ImageWriter::rgb_to_yuv420(enc.width as usize, enc.height as usize, &rgb_pixels);
-
-            f.planes[0].copy_from_raw_u8(&y_plane, enc.width, 1);
-            f.planes[1].copy_from_raw_u8(&u_plane, enc.width / 2, 1);
-            f.planes[2].copy_from_raw_u8(&v_plane, enc.width / 2, 1);
-            match ctx.send_frame(f.clone()) {
-                Ok(_) => {}
-                Err(e) => match e {
-                    EncoderStatus::EnoughData => {
-                        println!("Unable to append frame {} to the internal queue", i);
-                    }
-                    _ => {
-                        panic!("Unable to send frame {}", i);
-                    }
-                },
-            }
-        }
-
-        ctx.flush();
-        let mut file = File::create("output.ivf").unwrap();
-        ImageWriter::write_ivf_header(&mut file, &enc, limit as u64);
-
-        // Test that we cleanly exit once we hit the limit
-        let mut i = 0;
-        while i < limit + 5 {
-            match ctx.receive_packet() {
-                Ok(pkt) => {
-                    ImageWriter::write_ivf_packet(&mut file, &pkt);
-                    println!("Packet {}", pkt.input_frameno);
-                    i += 1;
-                }
-                Err(e) => match e {
-                    EncoderStatus::LimitReached => {
-                        println!("Limit reached");
-                        break;
-                    }
-                    EncoderStatus::Encoded => println!("  Encoded"),
-                    EncoderStatus::NeedMoreData => println!("  Need more data"),
-                    _ => {
-                        panic!("Unable to receive packet {}", i);
-                    }
-                },
-            }
-        }
-        file.flush().unwrap();
+        // let limit = 30;
+        //
+        // for i in 0..limit {
+        //     println!("Sending frame {}", i);
+        //     let mut f = ctx.new_frame();
+        //
+        //     // Create a colored gradient image for testing
+        //     let mut rgb_pixels: Vec<u8> = Vec::with_capacity((enc.width * enc.height * 3) as usize);
+        //     for y in 0..enc.height {
+        //         for x in 0..enc.width {
+        //             rgb_pixels.push(((x + i) % 256) as u8); // R
+        //             rgb_pixels.push(((y + i) % 256) as u8); // G
+        //             rgb_pixels.push(((x + y) % 256) as u8); // B
+        //         }
+        //     }
+        //
+        //     let (y_plane, u_plane, v_plane) =
+        //         ImageWriter::rgb_to_yuv420(enc.width as usize, enc.height as usize, &rgb_pixels);
+        //
+        //     f.planes[0].copy_from_raw_u8(&y_plane, enc.width, 1);
+        //     f.planes[1].copy_from_raw_u8(&u_plane, enc.width / 2, 1);
+        //     f.planes[2].copy_from_raw_u8(&v_plane, enc.width / 2, 1);
+        //     match ctx.send_frame(f.clone()) {
+        //         Ok(_) => {}
+        //         Err(e) => match e {
+        //             EncoderStatus::EnoughData => {
+        //                 println!("Unable to append frame {} to the internal queue", i);
+        //             }
+        //             _ => {
+        //                 panic!("Unable to send frame {}", i);
+        //             }
+        //         },
+        //     }
+        // }
+        //
+        // ctx.flush();
+        // let mut file = File::create("output.ivf").unwrap();
+        // ImageWriter::write_ivf_header(&mut file, &enc, limit as u64);
+        //
+        // // Test that we cleanly exit once we hit the limit
+        // let mut i = 0;
+        // while i < limit + 5 {
+        //     match ctx.receive_packet() {
+        //         Ok(pkt) => {
+        //             ImageWriter::write_ivf_packet(&mut file, &pkt);
+        //             println!("Packet {}", pkt.input_frameno);
+        //             i += 1;
+        //         }
+        //         Err(e) => match e {
+        //             EncoderStatus::LimitReached => {
+        //                 println!("Limit reached");
+        //                 break;
+        //             }
+        //             EncoderStatus::Encoded => println!("  Encoded"),
+        //             EncoderStatus::NeedMoreData => println!("  Need more data"),
+        //             _ => {
+        //                 panic!("Unable to receive packet {}", i);
+        //             }
+        //         },
+        //     }
+        // }
+        // file.flush().unwrap();
         Self { ctx, frames_count }
     }
 
