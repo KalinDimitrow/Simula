@@ -58,7 +58,7 @@ impl AlgorithmProcessor {
             .ctx
             .take()
             .expect("There is serious bug the threading code in algorithm processor");
-        ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
+        let _ = ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         self.worker = Some(thread::spawn(move || {
             let mut count: u64 = 0;
             let latice_dimentions = { shared_ctx.lock().general_params.read().unwrap().lattice_dimension };
@@ -87,7 +87,7 @@ impl AlgorithmProcessor {
         {
             let mut ctx = self.shared_ctx.lock();
             ctx.general_params.write().unwrap().algorithm_started = true;
-            ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
+            let _ = ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         }
     }
 
@@ -103,7 +103,7 @@ impl AlgorithmProcessor {
         {
             let mut ctx = self.shared_ctx.lock();
             ctx.general_params.write().unwrap().algorithm_started = false;
-            ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
+            let _ = ctx.event_proxy.send_event(CustomEvent::UpdateSharedData);
         }
     }
 }
